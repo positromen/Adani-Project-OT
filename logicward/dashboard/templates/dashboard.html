@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LogicWard — SOC Console</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-role="{{ role }}" data-username="{{ username }}">
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark"><span></span></span>
+      <div><div class="brand-name">LogicWard</div><div class="brand-sub">SOC Console</div></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item active" data-tab="overview">Overview</a>
+      <a class="nav-item" data-tab="plant">Live Plant</a>
+      <a class="nav-item" data-tab="diff">Program Diff</a>
+      <a class="nav-item" data-tab="alerts">Alerts <span id="alert-badge" class="badge">0</span></a>
+      <a class="nav-item" data-tab="evidence">Evidence</a>
+    </nav>
+    <div class="side-baseline">
+      <div class="side-kicker">Approved baseline</div>
+      <div class="mono tiny" id="side-hash">—</div>
+      <div id="side-integrity" class="pill">—</div>
+    </div>
+    <div class="side-user">
+      <div class="user-name">{{ user }}</div>
+      <div class="user-role">{{ role }}</div>
+      <a href="{{ url_for('logout') }}" class="logout">Sign out</a>
+    </div>
+  </aside>
+
+  <main class="content">
+    <header class="topbar">
+      <div class="topbar-title"><span id="live-dot" class="live-dot"></span> Thermal Power Plant — <span id="controller">—</span></div>
+      <div class="sev-chips">
+        <span class="chip crit">CRIT <b id="c-crit">0</b></span>
+        <span class="chip high">HIGH <b id="c-high">0</b></span>
+        <span class="chip med">MED <b id="c-med">0</b></span>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" data-role-min="engineer" id="btn-lock">Re-lock baseline</button>
+        <button class="btn" data-role-min="engineer" id="btn-restore">Restore baseline</button>
+        <a class="btn primary" data-role-min="soc_analyst" id="btn-pdf" href="/api/evidence/report.pdf">Export PDF</a>
+      </div>
+    </header>
+
+    <!-- Overview -->
+    <section id="tab-overview" class="panel">
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-label">Baseline integrity</div><div class="kpi-val" id="kpi-integrity">—</div></div>
+        <div class="kpi"><div class="kpi-label">Program vs baseline</div><div class="kpi-val" id="kpi-sync">—</div></div>
+        <div class="kpi"><div class="kpi-label">Critical alerts</div><div class="kpi-val" id="kpi-crit">0</div></div>
+        <div class="kpi"><div class="kpi-label">Total events</div><div class="kpi-val" id="kpi-total">0</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div class="card-h">Plant at a glance</div><div id="ov-plant" class="mini-plant"></div></div>
+        <div class="card"><div class="card-h">Recent alerts</div><div id="ov-alerts" class="feed"></div></div>
+      </div>
+    </section>
+
+    <!-- Live Plant -->
+    <section id="tab-plant" class="panel hidden">
+      <div class="card"><div class="card-h">Process values</div><div id="plant-values" class="value-grid"></div></div>
+      <div class="two-col">
+        <div class="card"><div class="card-h">Trip &amp; alarm status</div><div id="plant-trips" class="trip-grid"></div></div>
+        <div class="card"><div class="card-h">Setpoints (holding registers)</div><div id="plant-setpoints" class="value-grid"></div></div>
+      </div>
+    </section>
+
+    <!-- Program Diff -->
+    <section id="tab-diff" class="panel hidden">
+      <div class="card">
+        <div class="card-h">
+          Baseline vs running program
+          <span id="diff-summary" class="diff-summary"></span>
+        </div>
+        <div class="diff-hashes mono tiny">
+          <span>baseline <b id="diff-bhash">—</b></span>
+          <span>live <b id="diff-lhash">—</b></span>
+        </div>
+        <div id="diff-body" class="diff"></div>
+      </div>
+    </section>
+
+    <!-- Alerts -->
+    <section id="tab-alerts" class="panel hidden">
+      <div class="card"><div class="card-h">Alert feed — severity ranked</div>
+        <div id="alerts-table" class="alerts"></div>
+      </div>
+    </section>
+
+    <!-- Evidence -->
+    <section id="tab-evidence" class="panel hidden">
+      <div class="card"><div class="card-h">Evidence log <span class="muted tiny">who · when · what · MITRE ATT&amp;CK for ICS</span></div>
+        <div id="evidence-table" class="alerts"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast" class="toast hidden"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
