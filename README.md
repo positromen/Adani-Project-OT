@@ -2,6 +2,7 @@
 
 **Live OT drift-detection appliance** — detect unauthorized PLC logic changes on a simulated thermal power plant before they become operational risk.
 
+> **[USAGE.md](USAGE.md)** — complete how-to (run, demo, dashboard tour, attacker CLI, Pi deployment, config, troubleshooting).
 > Full specification: **[DESIGN.md](DESIGN.md)** · shareable **[LogicWard_Design.pdf](LogicWard_Design.pdf)** (also `LogicWard_Design.tex`).
 
 ## What it is

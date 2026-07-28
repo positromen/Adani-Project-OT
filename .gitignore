@@ -12,6 +12,8 @@ env/
 # LogicWard runtime state (generated)
 logicward/data/
 logicward/plant/program/live.L5X
+logs/
+deploy/*.env
 
 # LaTeX build artifacts (keep the .tex and .pdf)
 *.aux
