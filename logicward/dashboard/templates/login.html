@@ -21,9 +21,37 @@
       <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
       <button type="submit">Sign in</button>
     </form>
-    <div class="login-hint">
-      operator / operator123 &nbsp;·&nbsp; engineer / engineer123 &nbsp;·&nbsp; soc / soc123
+    <div class="login-accounts">
+      <div class="login-accounts-head">Demo accounts <span>— click a role to fill in</span></div>
+      <button type="button" class="cred-row" data-user="soc" data-pass="soc123">
+        <span class="cred-top"><span class="cred-role">SOC Analyst</span><span class="cred-id">soc / soc123</span></span>
+        <span class="cred-note">full access · evidence log · PDF export · all response actions</span>
+      </button>
+      <button type="button" class="cred-row" data-user="engineer" data-pass="engineer123">
+        <span class="cred-top"><span class="cred-role">Engineer</span><span class="cred-id">engineer / engineer123</span></span>
+        <span class="cred-note">+ baseline &amp; diff detail · lock / restore baseline</span>
+      </button>
+      <button type="button" class="cred-row" data-user="operator" data-pass="operator123">
+        <span class="cred-top"><span class="cred-role">Operator</span><span class="cred-id">operator / operator123</span></span>
+        <span class="cred-note">live plant + alert feed · acknowledge alerts</span>
+      </button>
     </div>
   </div>
+  <script>
+    (function () {
+      var form = document.querySelector('.login-form');
+      var rows = document.querySelectorAll('.cred-row');
+      rows.forEach(function (row) {
+        row.addEventListener('click', function () {
+          form.username.value = row.dataset.user;
+          form.password.value = row.dataset.pass;
+          rows.forEach(function (r) { r.classList.remove('sel'); });
+          row.classList.add('sel');
+          form.querySelector('button[type=submit]').focus();
+        });
+        row.addEventListener('dblclick', function () { form.submit(); });
+      });
+    })();
+  </script>
 </body>
 </html>
