@@ -145,3 +145,63 @@ b{font-weight:700}
 
 .toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:#fff;padding:11px 16px;border-radius:10px;
   font-size:13px;font-weight:600;box-shadow:0 16px 40px -16px rgba(0,0,0,.5);z-index:20}
+
+/* ===== Live plant SCADA mimic ===== */
+.mimic-card{overflow:hidden}
+.mimic-legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:600;flex:1;margin-left:14px}
+.mimic-legend .lg{width:9px;height:9px;border-radius:3px;display:inline-block;margin-left:10px}
+.mimic-legend .lg.on{background:#31d67a} .mimic-legend .lg.off{background:#42506a}
+.mimic-legend .lg.trip{background:#f5b13a} .mimic-legend .lg.atk{background:#ff3b47}
+.mimic{position:relative;width:100%;height:560px;margin-top:12px;border-radius:12px;
+  background:radial-gradient(120% 120% at 50% 0%,#0d1826 0%,#070d16 60%,#050a11 100%);
+  border:1px solid #14314e;overflow:hidden}
+.mimic-svg{position:absolute;inset:0;width:100%;height:100%}
+.pipe{fill:none;stroke:#2b4a6b;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linecap:round}
+.pipe.water{stroke:#2f8fe0;filter:drop-shadow(0 0 3px rgba(47,143,224,.6))}
+.pipe.fuel{stroke:#e0a13a;filter:drop-shadow(0 0 3px rgba(224,161,58,.55))}
+.pipe.heat{stroke:#ff7a3d;filter:drop-shadow(0 0 4px rgba(255,122,61,.6))}
+.pipe.steam{stroke:#ff934d;filter:drop-shadow(0 0 4px rgba(255,147,77,.55))}
+.pipe.shaft{stroke:#7f8fa6;stroke-width:3}
+.pipe.elec{stroke:#37e0e0;filter:drop-shadow(0 0 4px rgba(55,224,224,.6))}
+.pipe.ctrl{stroke:#3a5a80;stroke-dasharray:2 2;opacity:.7}
+.pipe.flow{stroke-dasharray:4 4;animation:flow 1.1s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-16}}
+
+.node{position:absolute;transform:translate(-50%,-50%);min-width:96px;padding:8px 10px;text-align:center;
+  background:linear-gradient(180deg,#12233a,#0d1a2c);border:1.5px solid #2f6b46;border-radius:9px;
+  color:#cfe3f5;box-shadow:0 0 0 1px rgba(0,0,0,.3),0 8px 22px -12px rgba(0,0,0,.8);cursor:default;z-index:2}
+.node-name{font-size:10.5px;font-weight:800;letter-spacing:.6px;color:#9fe6c0}
+.node-val{font-family:var(--mono);margin-top:3px}
+.node-val b{font-size:17px;color:#eaf6ff} .node-val span{font-size:10px;color:#6f89a6;margin-left:3px}
+.node-sub{font-size:10px;color:#7fa7c9;margin-top:2px}
+.node-sub.warn{color:#f5b13a}
+.node-state{font-size:11px;font-weight:800;letter-spacing:.5px;margin-top:3px;color:#31d67a}
+.node.off{border-color:#42506a} .node.off .node-name{color:#8fa3bd} .node.off .node-state{color:#8494a8}
+.node.plc{border-color:#c9982f;min-width:120px}
+.node.plc .node-name{color:#f2c85a}
+.node.net{border-color:#3a5a80} .node.net .node-name{color:#8fb6dd}
+.node.grid{border-color:#37e0e0;background:linear-gradient(180deg,#0e2b33,#0a1f28)}
+.node.grid .node-name{color:#6ff0f0}
+.node.brk{min-width:70px}
+
+/* trip relay badge attached to equipment */
+.relay{position:absolute;left:50%;bottom:-13px;transform:translate(-50%,100%);white-space:nowrap;
+  display:flex;align-items:center;gap:4px;font-size:8.5px;font-weight:800;letter-spacing:.4px;
+  padding:2px 6px;border-radius:5px;background:#0c1826;border:1px solid #2f6b46;color:#7fe0a6}
+.relay-dot{width:6px;height:6px;border-radius:50%;background:#31d67a;box-shadow:0 0 5px #31d67a}
+.relay.tripped{border-color:#f5b13a;color:#f5b13a;background:#241a0a}
+.relay.tripped .relay-dot{background:#f5b13a;box-shadow:0 0 6px #f5b13a}
+
+/* trip state on a node (e.g. valve/pump stopped by a trip) */
+.node.tripped{border-color:#f5b13a}
+.node.tripped .node-name{color:#f5b13a}
+
+/* under attack: redline + pulse + pinned MITRE badge */
+.node.attacked{border-color:#ff3b47!important;animation:atkpulse 1s ease-in-out infinite;cursor:pointer}
+.node.attacked .node-name{color:#ff6a72}
+@keyframes atkpulse{0%,100%{box-shadow:0 0 0 1px #ff3b47,0 0 4px rgba(255,59,71,.4)}
+  50%{box-shadow:0 0 0 2px #ff3b47,0 0 22px rgba(255,59,71,.85)}}
+.node .pin{position:absolute;top:-11px;right:-8px;transform:translateY(-100%);white-space:nowrap;
+  background:#ff3b47;color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;
+  box-shadow:0 4px 12px -4px rgba(255,59,71,.9);z-index:3}
+.node .pin.high{background:#ff7a3d} .node .pin.medium{background:#e0a13a} .node .pin.low{background:#5b6b80}

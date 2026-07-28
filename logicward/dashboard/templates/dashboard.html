@@ -63,11 +63,104 @@
 
     <!-- Live Plant -->
     <section id="tab-plant" class="panel hidden">
-      <div class="card"><div class="card-h">Process values</div><div id="plant-values" class="value-grid"></div></div>
+      <div class="card mimic-card">
+        <div class="card-h">Live plant mimic
+          <span class="mimic-legend">
+            <i class="lg on"></i>running <i class="lg off"></i>stopped
+            <i class="lg trip"></i>tripped <i class="lg atk"></i>under attack
+            <span class="muted tiny" style="margin-left:auto">click a flashing element to acknowledge</span>
+          </span>
+        </div>
+        <div class="mimic" id="mimic">
+          <svg class="mimic-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <!-- water / condensate (blue) -->
+            <line class="pipe water flow" x1="24" y1="78" x2="24" y2="40"/>
+            <line class="pipe water flow" x1="50" y1="84" x2="31" y2="84"/>
+            <line class="pipe water" x1="57" y1="78" x2="57" y2="88"/>
+            <!-- fuel (amber) -->
+            <line class="pipe fuel flow" x1="12" y1="66" x2="20" y2="66"/>
+            <!-- heat furnace->drum (orange) -->
+            <line class="pipe heat flow" x1="24" y1="60" x2="24" y2="40"/>
+            <!-- steam (orange) -->
+            <line class="pipe steam flow" x1="30" y1="32" x2="37" y2="32"/>
+            <line class="pipe steam flow" x1="47" y1="32" x2="52" y2="32"/>
+            <line class="pipe steam" x1="57" y1="40" x2="57" y2="78"/>
+            <!-- shaft + electrical (cyan/yellow) -->
+            <line class="pipe shaft" x1="62" y1="32" x2="66" y2="32"/>
+            <line class="pipe elec flow" x1="76" y1="32" x2="80" y2="32"/>
+            <line class="pipe elec flow" x1="82" y1="32" x2="87" y2="32"/>
+            <line class="pipe elec flow" x1="90" y1="28" x2="90" y2="18"/>
+            <!-- control / comms (dashed) -->
+            <line class="pipe ctrl" x1="8" y1="38" x2="8" y2="60"/>
+          </svg>
+
+          <div class="node plc" id="n-plc" style="left:8%;top:32%">
+            <div class="node-name">SAFETY PLC</div>
+            <div class="node-sub mono">Modbus TCP :5020</div>
+            <div class="node-sub warn mono">No Auth [V-001]</div>
+          </div>
+          <div class="node net" id="n-net" style="left:8%;top:66%">
+            <div class="node-name">OT NETWORK</div>
+            <div class="node-sub mono">allowlisted MACs</div>
+          </div>
+
+          <div class="node" id="n-fuel" style="left:12%;top:66%">
+            <div class="node-name">FUEL VALVE</div>
+            <div class="node-state" id="s-fuel">—</div>
+          </div>
+          <div class="node" id="n-furnace" style="left:24%;top:66%">
+            <div class="node-name">FURNACE</div>
+            <div class="node-state" id="s-flame">—</div>
+            <div class="relay" id="r-fuel"><span class="relay-dot"></span>FUEL TRIP</div>
+          </div>
+          <div class="node" id="n-drum" style="left:24%;top:32%">
+            <div class="node-name">BOILER DRUM</div>
+            <div class="node-val"><b id="v-drum">—</b><span>mm</span></div>
+            <div class="relay" id="r-feedwater"><span class="relay-dot"></span>FW TRIP</div>
+          </div>
+          <div class="node" id="n-fwp" style="left:24%;top:84%">
+            <div class="node-name">FEEDWATER PUMPS</div>
+            <div class="node-state" id="s-fwp">—</div>
+          </div>
+          <div class="node" id="n-msv" style="left:42%;top:32%">
+            <div class="node-name">MAIN STEAM</div>
+            <div class="node-val"><b id="v-steamp">—</b><span>bar</span></div>
+            <div class="node-sub"><span id="v-steamt">—</span> °C · <span id="s-msv">—</span></div>
+            <div class="relay" id="r-steam"><span class="relay-dot"></span>MS TRIP</div>
+          </div>
+          <div class="node" id="n-turbine" style="left:57%;top:32%">
+            <div class="node-name">HP TURBINE</div>
+            <div class="node-val"><b id="v-turb">—</b><span>rpm</span></div>
+            <div class="node-sub">vib <span id="v-vib">—</span> mm/s</div>
+            <div class="relay" id="r-turbine"><span class="relay-dot"></span>TURB TRIP</div>
+          </div>
+          <div class="node" id="n-cond" style="left:57%;top:84%">
+            <div class="node-name">CONDENSER</div>
+            <div class="node-val"><b id="v-cond">—</b><span>mbar</span></div>
+            <div class="relay" id="r-cond"><span class="relay-dot"></span>COND TRIP</div>
+          </div>
+          <div class="node" id="n-gen" style="left:71%;top:32%">
+            <div class="node-name">GENERATOR</div>
+            <div class="node-val"><b id="v-gen">—</b><span>MW</span></div>
+            <div class="node-sub"><span id="v-freq">—</span> Hz</div>
+          </div>
+          <div class="node brk" id="n-gcb" style="left:81%;top:32%">
+            <div class="node-name">GEN CB</div>
+            <div class="node-state" id="s-gcb">—</div>
+          </div>
+          <div class="node" id="n-xfmr" style="left:90%;top:32%">
+            <div class="node-name">GSU&nbsp;T1</div>
+          </div>
+          <div class="node grid" id="n-grid" style="left:90%;top:11%">
+            <div class="node-name">⚡ 115 kV GRID</div>
+          </div>
+        </div>
+      </div>
       <div class="two-col">
         <div class="card"><div class="card-h">Trip &amp; alarm status</div><div id="plant-trips" class="trip-grid"></div></div>
         <div class="card"><div class="card-h">Setpoints (holding registers)</div><div id="plant-setpoints" class="value-grid"></div></div>
       </div>
+      <div class="card"><div class="card-h">All process values</div><div id="plant-values" class="value-grid"></div></div>
     </section>
 
     <!-- Program Diff -->

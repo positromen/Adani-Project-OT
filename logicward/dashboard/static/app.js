@@ -10,6 +10,7 @@
   const events = [];
   const seen = new Set();
   let activeTab = "overview";
+  const acked = new Set();
 
   const $ = (s, r) => (r || document).querySelector(s);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
@@ -88,7 +89,7 @@
   function alertActions(e) {
     const wrap = el("div", "alert-actions");
     const mk = (label, fn) => { const b = el("button", "mini-btn", label); b.onclick = fn; wrap.appendChild(b); };
-    mk("Ack", () => jpost("/api/response/ack", { ref: e.event_id }).then(() => toast("Acknowledged")));
+    mk("Ack", () => { acked.add(e.event_id); flagMimic(); jpost("/api/response/ack", { ref: e.event_id }).then(() => toast("Acknowledged")); });
     if (myRank >= ROLE_RANK.soc_analyst && e.type === "physical.rogue_device")
       mk("Quarantine", () => jpost("/api/response/quarantine", { mac: e.details.mac, ip: e.details.ip, ref: e.event_id }).then(() => toast("Device quarantined")));
     if (myRank >= ROLE_RANK.soc_analyst && e.details && e.details.safety_critical && e.type.startsWith("cyber."))
@@ -141,6 +142,7 @@
       sortedEvents().slice(0, 6).forEach(e => ov.appendChild(alertRow(e, false)));
       if (!events.length) ov.appendChild(el("div", "muted tiny", "No drift detected — plant nominal."));
     }
+    flagMimic();
   }
 
   function renderPlant(p) {
@@ -184,6 +186,94 @@
         mp.appendChild(d);
       });
     }
+    updateMimic(p);
+  }
+
+  // ---- live SCADA mimic ----
+  const fmtOrDash = (n) => (n == null ? "—" : fmt(n));
+  const TAG_NODE = {
+    Drum_Level: "n-drum", Drum_Level_LL_SP: "n-drum", Drum_Level_Sensor_OK: "n-drum",
+    Feedwater_Trip: "r-feedwater", Feedwater_Pump_1: "n-fwp", Feedwater_Pump_2: "n-fwp",
+    Steam_Pressure: "n-msv", Main_Steam_Temp: "n-msv", Steam_Press_HH_SP: "n-msv",
+    Main_Steam_Valve_Open: "n-msv", Main_Steam_Trip: "r-steam",
+    Turbine_Speed: "n-turbine", Turbine_Overspeed_SP: "n-turbine", Turbine_Trip: "r-turbine",
+    Bearing_Vibration: "n-turbine", Bearing_Vib_HI_SP: "n-turbine", Vibration_Alarm: "r-turbine",
+    Generator_MW: "n-gen", Load_Setpoint_MW: "n-gen", Generator_Breaker_Closed: "n-gcb",
+    Condenser_Vacuum: "n-cond", Condenser_Vac_LO_SP: "n-cond", Condenser_Trip: "r-cond", Vacuum_Sensor_OK: "n-cond",
+    Fuel_Valve_Open: "n-fuel", Fuel_Trip: "r-fuel", Flame_Detected: "n-furnace",
+  };
+  const TYPE_NODE = {
+    "physical.enclosure_open": "n-plc", "physical.link_down": "n-grid", "physical.link_up": "n-grid",
+    "physical.rogue_device": "n-net", "resource.cpu_spike": "n-plc", "resource.mem_spike": "n-plc",
+    "cyber.baseline_tamper": "n-plc",
+  };
+  const RUNG_NODE = { Rung0: "n-drum", Rung1: "n-msv", Rung2: "n-turbine", Rung3: "n-furnace", Rung4: "n-cond", Rung5: "n-turbine" };
+
+  function setNodeState(valId, on, onLabel, offLabel, nodeId) {
+    const v = $("#" + valId); if (v) v.textContent = on ? onLabel : offLabel;
+    if (nodeId) { const n = $("#" + nodeId); if (n) n.classList.toggle("off", !on); }
+  }
+  function relayState(id, tripped) { const n = $("#" + id); if (n) n.classList.toggle("tripped", !!tripped); }
+
+  function updateMimic(p) {
+    const ir = p.input_registers || {}, co = p.coils || {}, di = p.discrete_inputs || {};
+    const g = (k) => (ir[k] ? ir[k].eng : null);
+    const set = (id, v) => { const e = $("#" + id); if (e) e.textContent = v; };
+    set("v-drum", fmtOrDash(g("Drum_Level")));
+    set("v-steamp", fmtOrDash(g("Steam_Pressure")));
+    set("v-steamt", fmtOrDash(g("Main_Steam_Temp")));
+    set("v-turb", fmtOrDash(g("Turbine_Speed")));
+    set("v-vib", fmtOrDash(g("Bearing_Vibration")));
+    set("v-cond", fmtOrDash(g("Condenser_Vacuum")));
+    set("v-gen", fmtOrDash(g("Generator_MW")));
+    const rpm = g("Turbine_Speed"); set("v-freq", rpm != null ? (rpm / 60).toFixed(2) : "—");
+    setNodeState("s-fuel", co.Fuel_Valve_Open, "OPEN", "SHUT", "n-fuel");
+    setNodeState("s-flame", di.Flame_Detected, "FLAME OK", "NO FLAME", "n-furnace");
+    setNodeState("s-fwp", co.Feedwater_Pump_1 || co.Feedwater_Pump_2, "RUNNING", "STOPPED", "n-fwp");
+    setNodeState("s-msv", co.Main_Steam_Valve_Open, "OPEN", "SHUT", "n-msv");
+    setNodeState("s-gcb", co.Generator_Breaker_Closed, "CLOSED", "OPEN", "n-gcb");
+    relayState("r-feedwater", co.Feedwater_Trip);
+    relayState("r-fuel", co.Fuel_Trip);
+    relayState("r-steam", co.Main_Steam_Trip);
+    relayState("r-turbine", co.Turbine_Trip || co.Vibration_Alarm);
+    relayState("r-cond", co.Condenser_Trip);
+  }
+
+  function nodesForEvent(e) {
+    const ids = new Set();
+    if (TYPE_NODE[e.type]) ids.add(TYPE_NODE[e.type]);
+    const blob = (e.type || "") + " " + JSON.stringify(e.details || {});
+    Object.keys(TAG_NODE).forEach(name => { if (blob.indexOf(name) >= 0) ids.add(TAG_NODE[name]); });
+    const rid = e.details && e.details.rung_id;
+    if (rid) Object.keys(RUNG_NODE).forEach(rk => { if (rid.indexOf(rk) >= 0) ids.add(RUNG_NODE[rk]); });
+    return [...ids];
+  }
+
+  function flagMimic() {
+    if (!$("#mimic")) return;
+    document.querySelectorAll("#mimic .pin").forEach(p => p.remove());
+    document.querySelectorAll("#mimic .attacked").forEach(n => { n.classList.remove("attacked"); n.onclick = null; });
+    const per = {};
+    events.forEach(e => {
+      if (acked.has(e.event_id)) return;
+      nodesForEvent(e).forEach(id => {
+        const r = per[id] || (per[id] = { sev: "info", mitre: null, ids: [] });
+        r.ids.push(e.event_id);
+        if (SEV_RANK[e.severity] >= SEV_RANK[r.sev]) { r.sev = e.severity; r.mitre = e.mitre; }
+      });
+    });
+    Object.entries(per).forEach(([id, r]) => {
+      const n = $("#" + id); if (!n) return;
+      n.classList.add("attacked");
+      const tech = (r.mitre && r.mitre.technique_id && r.mitre.technique_id !== "N/A") ? r.mitre.technique_id : r.sev.toUpperCase();
+      n.appendChild(el("div", "pin " + r.sev, tech));
+      n.onclick = () => {
+        r.ids.forEach(x => acked.add(x));
+        jpost("/api/response/ack", { ref: r.ids[0] }).catch(() => {});
+        flagMimic();
+        toast("Acknowledged · " + id.replace(/^[nr]-/, ""));
+      };
+    });
   }
 
   function loadDiff() {
