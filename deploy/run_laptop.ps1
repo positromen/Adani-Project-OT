@@ -9,7 +9,7 @@
 #   New-NetFirewallRule -DisplayName LogicWard -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow
 # ─────────────────────────────────────────────────────────────────────────────
 param(
-  [string]$PiHost = "siddhesh-pi.local",
+  [string]$PiHost = "siddhesh.local",
   [string]$Token  = "logicward-dev-token-change-me"
 )
 
