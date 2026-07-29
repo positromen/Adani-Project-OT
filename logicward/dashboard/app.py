@@ -248,6 +248,7 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     @app.post("/api/alerts/clear")
     def api_alerts_clear():
         dash.bus.clear()
+        dash.drift.reset()
         return jsonify({"status": "cleared", "message": "All alerts have been cleared from memory and disk."})
 
     @app.get("/api/evidence/report.pdf")
