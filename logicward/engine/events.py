@@ -147,6 +147,11 @@ class EvidenceLog:
             text = self.path.read_text(encoding="utf-8")
         return [json.loads(ln) for ln in text.splitlines() if ln.strip()]
 
+    def clear(self) -> None:
+        with self._lock:
+            if self.path.exists():
+                self.path.write_text("", encoding="utf-8")
+
 
 # ── The bus ───────────────────────────────────────────────────────────────────
 
@@ -195,6 +200,15 @@ class EventBus:
             except Exception:  # a bad subscriber must not break the bus
                 pass
         return enriched
+
+    def clear(self) -> None:
+        """Clear all in-memory event history and the evidence log."""
+        with self._lock:
+            self._history.clear()
+            self._seen_ids.clear()
+            self._seq = 0
+            if self.evidence:
+                self.evidence.clear()
 
     def _enrich(self, event: dict, seq: int) -> dict:
         etype = event["type"]

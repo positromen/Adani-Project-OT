@@ -196,8 +196,20 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
     def run_utility():
         data = request.get_json(silent=True) or {}
         action_id = data.get("id", "")
+        import time
         try:
-            if action_id == "clean-pi":
+            if action_id == "clear-alerts":
+                import requests
+                try:
+                    res = requests.post("http://127.0.0.1:8080/api/alerts/clear", timeout=3)
+                    if res.status_code == 200:
+                        return jsonify({"status": "success", "detail": "Alerts cleared from SOC memory and disk. Refresh SOC dashboard (F5)."})
+                    else:
+                        return jsonify({"status": "error", "detail": f"SOC dashboard returned {res.status_code}"})
+                except Exception as e:
+                    return jsonify({"status": "error", "detail": f"Failed to contact SOC dashboard: {e}"})
+
+            elif action_id == "clean-pi":
                 out = _run_ssh_command(host, [
                     "cd ~/Adani-Project-OT/logicward/plant/program && cp ThermalPlant_baseline.L5X live.L5X",
                     "cd ~/Adani-Project-OT/logicward/plant/program && sha256sum ThermalPlant_baseline.L5X live.L5X",
@@ -205,7 +217,6 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
                 return jsonify({"status": "success", "detail": out})
 
             elif action_id == "restart-pi":
-                import time
                 password = os.environ.get("PI_PASSWORD", "123456789")
                 out_parts = []
                 out_parts.append(_run_ssh_command(host, [
@@ -228,21 +239,11 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
                 ])
                 return jsonify({"status": "success", "detail": out})
 
-            elif action_id == "clear-alerts":
-                from logicward import config
-                try:
-                    config.EVIDENCE_PATH.unlink(missing_ok=True)
-                    return jsonify({"status": "success",
-                                    "detail": "evidence.jsonl deleted. Refresh the SOC dashboard (F5) to see zero alerts."})
-                except Exception as e:
-                    return jsonify({"status": "error", "detail": str(e)})
-
             else:
                 return jsonify({"status": "error", "detail": f"Unknown action: {action_id}"}), 400
 
         except Exception as exc:
-            return jsonify({"status": "error",
-                            "detail": f"{type(exc).__name__}: {exc}"}), 500
+            return jsonify({"status": "error", "detail": f"{type(exc).__name__}: {exc}"}), 500
 
     return app
 

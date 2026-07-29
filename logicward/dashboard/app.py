@@ -245,6 +245,11 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
         sev = request.args.get("severity")
         return jsonify({"events": evidence_mod.query(dash.bus.snapshot(), severity=sev, limit=300)})
 
+    @app.post("/api/alerts/clear")
+    def api_alerts_clear():
+        dash.bus.clear()
+        return jsonify({"status": "cleared", "message": "All alerts have been cleared from memory and disk."})
+
     @app.get("/api/evidence/report.pdf")
     @role_required("soc_analyst")
     def api_report():
