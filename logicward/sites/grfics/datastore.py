@@ -41,6 +41,7 @@ class ChemicalDataStore:
         self.discrete_inputs = [False] * len(pts.DISCRETE_INPUTS)
         self.input_registers = [0] * len(pts.INPUT_REGISTERS)
         self.holding_registers = [0] * len(pts.HOLDING_REGISTERS)
+        self.generation = 1
         for tag, v in SEED_HOLDING.items():
             self.holding_registers[pts.BY_TAG[tag].address] = pts.raw(v, tag)
         for tag, v in SEED_COILS.items():
@@ -63,6 +64,7 @@ class ChemicalDataStore:
     def reset(self) -> None:
         """Instantly restores the physics simulation to its baseline equilibrium."""
         with self.lock:
+            self.generation += 1
             for tag, v in SEED_HOLDING.items():
                 self.holding_registers[pts.BY_TAG[tag].address] = pts.raw(v, tag)
             for tag, v in SEED_COILS.items():
@@ -124,7 +126,7 @@ class ChemicalDataStore:
             purge_flow = purge * (0.6 + self.pressure / 3200.0)
             product_flow = product * (0.4 + self.level / 100.0)
 
-            self.level += (inflow - product_flow) * dt * 0.06
+            self.level += (inflow - product_flow) * dt * 0.25
             self.level = max(0.0, min(125.0, self.level))
 
             dp = inflow * 1.0 - purge_flow * 1.26

@@ -105,24 +105,6 @@ CHEM_CATALOGUE = [
         "icon": "💥",
     },
     {
-        "id": "spoil-product",
-        "name": "Chemical Spoilage",
-        "category": "Modbus",
-        "severity": "high",
-        "mitre": "T0855 — Unauthorized Command",
-        "description": "Floods the reactor with Feed 1 and cuts off Feed 2, ruining the stoichiometric mixture. The liquid changes color to indicate a bad batch.",
-        "icon": "🧪",
-    },
-    {
-        "id": "valve-override",
-        "name": "Valve Override",
-        "category": "Modbus",
-        "severity": "high",
-        "mitre": "T0855 — Unauthorized Command",
-        "description": "Force both feed valves to 100% and slam the purge valve shut. Reactor pressure climbs toward the redline on the 3D scene.",
-        "icon": "🎚️",
-    },
-    {
         "id": "overfill",
         "name": "Tank Overfill",
         "category": "Modbus",
@@ -139,15 +121,6 @@ CHEM_CATALOGUE = [
         "mitre": "T0855 — Unauthorized Command",
         "description": "Force the emergency-shutdown coil. The plant slams to safe-state — a denial of control the operator never commanded.",
         "icon": "🛑",
-    },
-    {
-        "id": "pump-kill",
-        "name": "Feed Pump Kill",
-        "category": "Modbus",
-        "severity": "high",
-        "mitre": "T0855 — Unauthorized Command",
-        "description": "Force feed pump 1 off over Modbus, disturbing the reactor feed.",
-        "icon": "⛔",
     },
 ]
 

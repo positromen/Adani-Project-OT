@@ -46,7 +46,7 @@ def make_grfics_blueprint(site, name: str = "grfics") -> Blueprint:
     def data_feed():
         return jsonify(site.ds.feed_json())
 
-    @bp.route("/versions.php")
+    @bp.route("/versions.php")
     @bp.route("/version.php")
     def versions():
         return jsonify({"version": "logicward-site-b", "created": "local"})
@@ -55,7 +55,8 @@ def make_grfics_blueprint(site, name: str = "grfics") -> Blueprint:
     @bp.get("/api/site-b/state")
     def state():
         return jsonify({"feed": site.ds.feed_json(),
-                        "snapshot": site.ds.named_snapshot()})
+                        "snapshot": site.ds.named_snapshot(),
+                        "generation": site.ds.generation})
 
     @bp.get("/api/site-b/events")
     def events():
@@ -80,6 +81,6 @@ def make_grfics_blueprint(site, name: str = "grfics") -> Blueprint:
     @bp.post("/api/site-b/reset")
     def reset():
         site.reset()
-        return jsonify({"status": "reset", "note": "Plant restored to approved baseline"})
+        return jsonify({"status": "ok", "message": "Chemical plant reset to equilibrium"})
 
     return bp

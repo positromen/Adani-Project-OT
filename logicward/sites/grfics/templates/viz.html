@@ -24,6 +24,24 @@
       if (p === 1) { var o = document.getElementById("ov"); if (o) o.style.display = "none"; }
     }
     var unityInstance = UnityLoader.instantiate("unityContainer", "Build/ChemicalPlant.json", { onProgress: prog });
+
+    // -- LogicWard Auto-Reset Monitor --
+    // The Unity game gets permanently stuck in "Game Over" if the tank explodes.
+    // We poll the backend generation counter; if it changes (user clicked Reset),
+    // we force the browser to completely reload the iframe, giving us a fresh game!
+    let currentGen = null;
+    setInterval(async () => {
+      try {
+        const res = await fetch("/api/site-b/state");
+        const data = await res.json();
+        if (currentGen === null) {
+          currentGen = data.generation;
+        } else if (data.generation !== currentGen) {
+          console.log("Backend generation changed. Reloading Unity game...");
+          window.location.reload();
+        }
+      } catch (err) {}
+    }, 2000);
   </script>
 </body>
 </html>
