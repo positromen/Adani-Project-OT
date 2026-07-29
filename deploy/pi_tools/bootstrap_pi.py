@@ -21,7 +21,8 @@ def main():
     except Exception as e:
         print(f"Failed to connect to Pi: {e}")
         print("Make sure the Pi is turned ON and connected to your Mobile Hotspot.")
-        return
+        import sys
+        sys.exit(1)
 
     print("Killing old processes...")
     client.exec_command(f"echo '{PI_PASS}' | sudo -S pkill -f 'python -m logicward' || true")

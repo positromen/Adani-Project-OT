@@ -28,6 +28,10 @@ Write-Host "Found Laptop Hotspot IP at $LaptopIp" -ForegroundColor Green
 
 Write-Host "`nBootstrapping Pi..." -ForegroundColor Cyan
 python deploy/pi_tools/bootstrap_pi.py --pi-ip $PiIp --laptop-ip $LaptopIp
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Could not connect to Pi. Aborting." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "`nStarting SOC Dashboard..." -ForegroundColor Cyan
 .\deploy\run_laptop.ps1 -PiHost $PiIp
