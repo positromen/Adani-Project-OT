@@ -31,6 +31,7 @@ from logicward.engine.events import EventBus
 from logicward.engine.response import ResponseEngine
 from logicward.engine.server import api as engine_api
 from logicward.engine.sources import EmbeddedPlant, RemotePlant
+from logicward.sites import registry
 
 # ── demo-grade RBAC user directory ────────────────────────────────────────────
 USERS = {
@@ -62,6 +63,19 @@ class Dashboard:
                                  register_source=self.plant.register_source)
         self.response = ResponseEngine(self.bus, restore_hook=self._restore_baseline_program)
         self.baseline_fim = BaselineFileMonitor(self.baseline_path, self.bus.emit)
+
+        # -- Site B: GRFICS chemical reactor (optional, shares THIS bus) --
+        # A second monitored site: its own Modbus PLC + physics + register-drift
+        # detector, all feeding the same event bus so both plants share one feed,
+        # timeline, and evidence log. Guarded so a missing GRFICS build never
+        # breaks the thermal dashboard. Disable with LOGICWARD_MULTISITE=0.
+        self.chem = None
+        if os.environ.get("LOGICWARD_MULTISITE", "1") != "0":
+            try:
+                from logicward.sites.grfics.app import SiteB
+                self.chem = SiteB(bus=self.bus, modbus_port=config.GRFICS_MODBUS_PORT)
+            except Exception:  # noqa: BLE001
+                self.chem = None
 
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -195,6 +209,12 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     app.register_blueprint(engine_api)
     app.config["DASH"] = dash
 
+    # Site B (chemical reactor): mount its 3D scene + feed + APIs on this app so
+    # both plants live under one dashboard, one bus, one login.
+    if dash.chem is not None:
+        from logicward.sites.grfics.blueprint import make_grfics_blueprint
+        app.register_blueprint(make_grfics_blueprint(dash.chem))
+
     # -- auth --
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -224,6 +244,14 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
                                role=USERS[u]["role"])
 
     # -- data APIs --
+    @app.get("/api/sites")
+    @login_required
+    def api_sites():
+        available = {"thermal-pi"}
+        if dash.chem is not None:
+            available.add("grfics-chem")
+        return jsonify({"sites": registry.site_list(available), "default": registry.DEFAULT_SITE})
+
     @app.get("/api/overview")
     @login_required
     def api_overview():
@@ -243,7 +271,9 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     @login_required
     def api_evidence():
         sev = request.args.get("severity")
-        return jsonify({"events": evidence_mod.query(dash.bus.snapshot(), severity=sev, limit=300)})
+        site = request.args.get("site")
+        return jsonify({"events": evidence_mod.query(dash.bus.snapshot(), severity=sev,
+                                                     site=site, limit=300)})
 
     @app.post("/api/alerts/clear")
     def api_alerts_clear():
@@ -254,13 +284,19 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     @app.get("/api/evidence/report.pdf")
     @role_required("soc_analyst")
     def api_report():
+        site = request.args.get("site")
         events = dash.bus.snapshot()
-        meta = {"controller": dash.signed["manifest"]["controller"],
+        if site:
+            events = evidence_mod.query(events, site=site, limit=100000)
+        prof = registry.BY_ID.get(site)
+        meta = {"controller": (prof.name if prof else dash.signed["manifest"]["controller"]),
                 "baseline_hash": dash.signed["manifest"]["structural_hash"],
-                "baseline_integrity": "VALID" if bl.verify(dash.signed) else "TAMPERED"}
+                "baseline_integrity": "VALID" if bl.verify(dash.signed) else "TAMPERED",
+                "site": (prof.name if prof else "All sites")}
         pdf = evidence_mod.build_pdf(events, meta)
+        fname = f"logicward_{site or 'all-sites'}_report.pdf"
         return Response(pdf, mimetype="application/pdf",
-                        headers={"Content-Disposition": "attachment; filename=logicward_forensic_report.pdf"})
+                        headers={"Content-Disposition": f"attachment; filename={fname}"})
 
     # -- actions (role-gated) --
     @app.post("/api/baseline/lock")

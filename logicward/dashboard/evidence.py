@@ -26,12 +26,15 @@ SEV_COLOR = {
 
 
 def query(events: list[dict], severity: str | None = None, etype: str | None = None,
-          limit: int = 500) -> list[dict]:
+          site: str | None = None, limit: int = 500) -> list[dict]:
     rows = events
     if severity:
         rows = [e for e in rows if e.get("severity") == severity]
     if etype:
         rows = [e for e in rows if e.get("type", "").startswith(etype)]
+    if site:
+        # thermal events omit details.site → default to the thermal site id
+        rows = [e for e in rows if (e.get("details") or {}).get("site", "thermal-pi") == site]
     rows = sorted(rows, key=lambda e: e.get("seq", 0), reverse=True)
     return rows[:limit]
 

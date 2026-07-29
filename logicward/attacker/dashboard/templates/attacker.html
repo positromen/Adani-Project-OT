@@ -35,12 +35,7 @@
     </div>
   </header>
 
-  <main class="container">
-    <!-- Attack Cards Grid -->
-    <section class="section">
-      <h2 class="section-title"><span class="section-icon">💀</span> Attack Catalogue</h2>
-      <div class="card-grid" id="attackGrid">
-        {% for atk in attacks %}
+  {% macro attack_card(atk) %}
         <div class="attack-card" data-id="{{ atk.id }}" data-severity="{{ atk.severity }}">
           <div class="card-header">
             <span class="card-icon">{{ atk.icon }}</span>
@@ -66,7 +61,24 @@
             <span class="card-result"></span>
           </div>
         </div>
-        {% endfor %}
+  {% endmacro %}
+
+  <main class="container">
+    <!-- Thermal Power Plant (Raspberry Pi) -->
+    <section class="section">
+      <h2 class="section-title"><span class="section-icon">⚡</span> Thermal Power Plant
+        <span class="target-sub">Raspberry Pi · {{ target_host }}:{{ modbus_port }}</span></h2>
+      <div class="card-grid">
+        {% for atk in attacks %}{{ attack_card(atk) }}{% endfor %}
+      </div>
+    </section>
+
+    <!-- GRFICS Chemical Reactor (3D model) -->
+    <section class="section">
+      <h2 class="section-title"><span class="section-icon">⚗️</span> GRFICS Chemical Reactor
+        <span class="target-sub">3D model · {{ chem_host }}:{{ chem_port }}</span></h2>
+      <div class="card-grid">
+        {% for atk in chem_attacks %}{{ attack_card(atk) }}{% endfor %}
       </div>
     </section>
 

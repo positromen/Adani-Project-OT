@@ -16,27 +16,29 @@ Open: http://127.0.0.1:8095/
 from __future__ import annotations
 
 import threading
-import time
 
-from flask import (Flask, Response, jsonify, render_template,
-                   send_from_directory)
+from flask import Flask, render_template
 
 from logicward import config
 from logicward.engine.events import EventBus
 from logicward.plant.modbus_server import ModbusTCPServer
 from logicward.sites.grfics import SITE_ID, SITE_NAME
-from logicward.sites.grfics import points as pts
 from logicward.sites.grfics.attacks import ChemAttacker
+from logicward.sites.grfics.blueprint import make_grfics_blueprint
 from logicward.sites.grfics.datastore import ChemicalDataStore
 from logicward.sites.grfics.detector import ChemicalDriftDetector
 
 
 class SiteB:
-    """Owns the live objects for the chemical site."""
+    """Owns the live objects for the chemical site.
 
-    def __init__(self, modbus_port: int | None = None):
-        self.bus = EventBus(evidence_path=config.DATA_DIR / "grfics_evidence.jsonl",
-                            history_max=config.EVENT_HISTORY_MAX)
+    ``bus`` can be injected so the unified SOC dashboard shares ONE event bus
+    across sites; left None (standalone mode) it creates its own.
+    """
+
+    def __init__(self, bus: EventBus | None = None, modbus_port: int | None = None):
+        self.bus = bus or EventBus(evidence_path=config.DATA_DIR / "grfics_evidence.jsonl",
+                                   history_max=config.EVENT_HISTORY_MAX)
         self.ds = ChemicalDataStore().start(hz=10.0)
         self.server = ModbusTCPServer(host="127.0.0.1",
                                       port=modbus_port or config.GRFICS_MODBUS_PORT,
@@ -72,76 +74,14 @@ def create_app(site: SiteB | None = None) -> Flask:
     site = site or SiteB()
     app.config["SITE"] = site
 
-    build_dir = config.GRFICS_BUILD_DIR
-
-    # -- dashboard --
+    # the standalone Site-B dashboard page (the SOC dashboard uses its own UI)
     @app.route("/")
     def index():
         return render_template("grfics.html", site_name=SITE_NAME, site_id=SITE_ID,
                                modbus_port=site.modbus_port)
 
-    # -- the Unity 3D scene (minimal host page + build assets) --
-    @app.route("/viz/")
-    def viz():
-        return render_template("viz.html")
-
-    @app.route("/viz/Build/<path:fname>")
-    def viz_build(fname):
-        return send_from_directory(build_dir / "Build", fname)
-
-    @app.route("/viz/TemplateData/<path:fname>")
-    def viz_template(fname):
-        return send_from_directory(build_dir / "TemplateData", fname)
-
-    # -- the process feed the Unity scene reads (exact GRFICS schema) --
-    @app.route("/data/index.php", methods=["GET", "POST"])
-    def data_feed():
-        return jsonify(site.ds.feed_json())
-
-    @app.route("/versions.php")
-    @app.route("/version.php")
-    def versions():
-        return jsonify({"version": "logicward-site-b", "created": "local"})
-
-    # -- APIs the dashboard polls --
-    @app.get("/api/state")
-    def api_state():
-        return jsonify({"feed": site.ds.feed_json(),
-                        "snapshot": site.ds.named_snapshot()})
-
-    @app.get("/api/events")
-    def api_events():
-        from flask import request
-        since = request.args.get("since", default=0, type=int)
-        evs, cursor = site.bus.get_since(since)
-        return jsonify({"events": evs, "cursor": cursor})
-
-    @app.get("/api/points")
-    def api_points():
-        return jsonify({
-            "holding": [{"tag": p.tag, "unit": p.unit} for p in pts.HOLDING_REGISTERS],
-            "coils": [{"tag": p.tag} for p in pts.COILS if p.tag not in pts.PLANT_DRIVEN_COILS],
-        })
-
-    # -- actions --
-    @app.post("/api/attack/<name>")
-    def api_attack(name):
-        fn = {
-            "defeat-protection": site.attacker.defeat_protection,
-            "valve-override": site.attacker.valve_override,
-            "overfill": site.attacker.overfill,
-            "estop-injection": site.attacker.estop_injection,
-            "pump-kill": site.attacker.pump_kill,
-        }.get(name)
-        if not fn:
-            return jsonify({"error": f"unknown attack {name}"}), 404
-        return jsonify(fn())
-
-    @app.post("/api/reset")
-    def api_reset():
-        site.reset()
-        return jsonify({"status": "reset", "note": "Plant restored to approved baseline"})
-
+    # the 3D scene, process feed, and Site-B APIs all live in the shared blueprint
+    app.register_blueprint(make_grfics_blueprint(site))
     return app
 
 

@@ -15,7 +15,7 @@
   }
 
   function pollState() {
-    fetch("/api/state").then((r) => r.json()).then((s) => {
+    fetch("/api/site-b/state").then((r) => r.json()).then((s) => {
       const o = s.feed.outputs, st = s.feed.state;
       setGauge("g-press", "m-press", o.pressure, "kPa", 4000, 2600, 3200);
       setGauge("g-level", "m-level", o.liquid_level, "%", 120, 85, 100);
@@ -31,7 +31,7 @@
   let cursor = 0, total = 0;
   const feed = $("feed");
   function pollEvents() {
-    fetch("/api/events?since=" + cursor).then((r) => r.json()).then((d) => {
+    fetch("/api/site-b/events?since=" + cursor).then((r) => r.json()).then((d) => {
       cursor = d.cursor;
       if (!d.events.length) return;
       if (total === 0) feed.innerHTML = "";
@@ -55,18 +55,18 @@
   document.querySelectorAll("[data-atk]").forEach((b) => {
     b.addEventListener("click", () => {
       b.disabled = true;
-      jpost("/api/attack/" + b.dataset.atk).finally(() => setTimeout(() => (b.disabled = false), 400));
+      jpost("/api/site-b/attack/" + b.dataset.atk).finally(() => setTimeout(() => (b.disabled = false), 400));
     });
   });
   $("rundemo").addEventListener("click", async () => {
     $("rundemo").disabled = true;
-    await jpost("/api/attack/defeat-protection");
+    await jpost("/api/site-b/attack/defeat-protection");
     await new Promise((r) => setTimeout(r, 1500));
-    await jpost("/api/attack/valve-override");
+    await jpost("/api/site-b/attack/valve-override");
     setTimeout(() => ($("rundemo").disabled = false), 800);
   });
   $("reset").addEventListener("click", () => {
-    jpost("/api/reset").then(() => {
+    jpost("/api/site-b/reset").then(() => {
       feed.innerHTML = '<div class="empty">Baseline restored — plant matches approved config.</div>';
       total = 0; $("evcount").textContent = "0 events";
       $("integrity").textContent = "baseline: LOCKED";
