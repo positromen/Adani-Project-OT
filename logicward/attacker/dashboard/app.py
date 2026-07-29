@@ -107,6 +107,12 @@ UTILITY_ACTIONS = [
         "description": "SSH into the Pi and check if baseline/live hashes match and services are running.",
         "icon": "🔍",
     },
+    {
+        "id": "clear-alerts",
+        "name": "Clear SOC Alerts",
+        "description": "Delete evidence.jsonl on your laptop so the SOC dashboard shows zero alerts.",
+        "icon": "🗑️",
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -200,13 +206,14 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
 
             elif action_id == "restart-pi":
                 import time
+                password = os.environ.get("PI_PASSWORD", "123456789")
                 out_parts = []
                 out_parts.append(_run_ssh_command(host, [
-                    "sudo pkill -f 'python -m logicward' || true",
+                    f"echo '{password}' | sudo -S pkill -f 'python -m logicward' || true",
                 ]))
                 time.sleep(2)
                 out_parts.append(_run_ssh_command(host, [
-                    "cd ~/Adani-Project-OT && nohup bash -c 'SUDO_AGENT=1 bash deploy/run_pi.sh' > deploy/nohup.log 2>&1 &",
+                    f"cd ~/Adani-Project-OT && nohup bash -c 'echo {password} | sudo -S env PATH=$PATH SUDO_AGENT=1 bash deploy/run_pi.sh' > deploy/nohup.log 2>&1 &",
                 ]))
                 time.sleep(3)
                 out_parts.append(_run_ssh_command(host, [
@@ -220,6 +227,15 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
                     "pgrep -af 'python -m logicward'",
                 ])
                 return jsonify({"status": "success", "detail": out})
+
+            elif action_id == "clear-alerts":
+                from logicward import config
+                try:
+                    config.EVIDENCE_PATH.unlink(missing_ok=True)
+                    return jsonify({"status": "success",
+                                    "detail": "evidence.jsonl deleted. Refresh the SOC dashboard (F5) to see zero alerts."})
+                except Exception as e:
+                    return jsonify({"status": "error", "detail": str(e)})
 
             else:
                 return jsonify({"status": "error", "detail": f"Unknown action: {action_id}"}), 400
