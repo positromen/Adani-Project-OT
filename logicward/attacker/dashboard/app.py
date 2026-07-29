@@ -96,13 +96,22 @@ ATTACK_CATALOGUE = [
 # trips LogicWard's chemical register-drift detector.
 CHEM_CATALOGUE = [
     {
-        "id": "defeat-protection",
-        "name": "Defeat Protection",
+        "id": "pressure-redline",
+        "name": "Pressure Redline (Combo)",
+        "category": "Modbus",
+        "severity": "critical",
+        "mitre": "T0836 — Modify Parameter",
+        "description": "First raises the reactor's high-pressure trip setpoint to defeat the safety interlock, then forces the feed valves open. Watch the pressure gauge fly off the chart!",
+        "icon": "💥",
+    },
+    {
+        "id": "spoil-product",
+        "name": "Chemical Spoilage",
         "category": "Modbus",
         "severity": "high",
-        "mitre": "T0836 — Modify Parameter",
-        "description": "Raise the reactor's high-pressure trip setpoint over Modbus so the safety interlock never fires. Protection is disarmed — the plant can now run into the danger zone unchecked.",
-        "icon": "🛡️",
+        "mitre": "T0855 — Unauthorized Command",
+        "description": "Floods the reactor with Feed 1 and cuts off Feed 2, ruining the stoichiometric mixture. The liquid changes color to indicate a bad batch.",
+        "icon": "🧪",
     },
     {
         "id": "valve-override",
@@ -148,6 +157,12 @@ UTILITY_ACTIONS = [
         "name": "Reset to Baseline",
         "description": "Overwrite live.L5X with the clean ThermalPlant_baseline.L5X on the Pi.",
         "icon": "🧹",
+    },
+    {
+        "id": "reset-chem",
+        "name": "Reset Chemical Plant",
+        "description": "Restore Site B (Chemical Reactor) to equilibrium state.",
+        "icon": "♻️",
     },
     {
         "id": "restart-pi",
@@ -275,6 +290,17 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
                         return jsonify({"status": "error", "detail": f"SOC dashboard returned {res.status_code}"})
                 except Exception as e:
                     return jsonify({"status": "error", "detail": f"Failed to contact SOC dashboard: {e}"})
+
+            elif action_id == "reset-chem":
+                import requests
+                try:
+                    res = requests.post("http://127.0.0.1:8080/api/site-b/reset", timeout=3)
+                    if res.status_code == 200:
+                        return jsonify({"status": "success", "detail": "Chemical plant reset to equilibrium!"})
+                    else:
+                        return jsonify({"status": "error", "detail": f"SOC dashboard returned {res.status_code}"})
+                except Exception as e:
+                    return jsonify({"status": "error", "detail": f"Failed to reset chemical plant: {e}"})
 
             elif action_id == "clean-pi":
                 out = _run_ssh_command(host, [

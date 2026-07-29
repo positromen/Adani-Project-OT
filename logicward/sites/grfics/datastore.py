@@ -60,6 +60,22 @@ class ChemicalDataStore:
         self.request_count = 0
         self._running = False
 
+    def reset(self) -> None:
+        """Instantly restores the physics simulation to its baseline equilibrium."""
+        with self.lock:
+            for tag, v in SEED_HOLDING.items():
+                self.holding_registers[pts.BY_TAG[tag].address] = pts.raw(v, tag)
+            for tag, v in SEED_COILS.items():
+                self.coils[pts.BY_TAG[tag].address] = bool(v)
+            for tag, v in SEED_DISCRETE.items():
+                self.discrete_inputs[pts.BY_TAG[tag].address] = bool(v)
+            self.level = 40.0
+            self.pressure = 1800.0
+            self.A, self.B, self.C = 40.0, 30.0, 30.0
+            self._flows = {"Feed1_Flow": 0.0, "Feed2_Flow": 0.0,
+                           "Purge_Flow": 0.0, "Product_Flow": 0.0}
+            self._push_sensors()
+
     # -- tag accessors (raw) --
     def _hr(self, tag: str) -> int:
         return self.holding_registers[pts.BY_TAG[tag].address]
