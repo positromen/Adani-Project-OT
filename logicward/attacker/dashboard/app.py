@@ -78,30 +78,12 @@ ATTACK_CATALOGUE = [
         "icon": "⚡",
     },
     {
-        "id": "ddos-1k",
-        "name": "DDoS (1k packets)",
-        "category": "Modbus",
-        "severity": "medium",
-        "mitre": "T0814 — Denial of Service",
-        "description": "Flood the PLC Modbus server with 1,000 rapid-fire FC03 read requests.",
-        "icon": "🌊",
-    },
-    {
-        "id": "ddos-10k",
-        "name": "DDoS (10k packets)",
-        "category": "Modbus",
-        "severity": "high",
-        "mitre": "T0814 — Denial of Service",
-        "description": "Intense flood. Send 10,000 rapid-fire FC03 read requests to severely spike CPU.",
-        "icon": "🌊",
-    },
-    {
-        "id": "ddos-50k",
-        "name": "DDoS (50k packets)",
+        "id": "ddos",
+        "name": "DDoS Flood",
         "category": "Modbus",
         "severity": "critical",
         "mitre": "T0814 — Denial of Service",
-        "description": "Extreme flood. Send 50,000 rapid-fire requests, saturating the network.",
+        "description": "Flood the PLC Modbus server with rapid-fire FC03 read requests, saturating the network and spiking the CPU. Use the slider to set intensity.",
         "icon": "🌊",
     },
 ]
@@ -198,12 +180,11 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
                 return jsonify({"status": "success" if ok else "failed",
                                 "detail": "Fuel_Valve_Open → OFF"})
 
-            elif attack_id.startswith("ddos-"):
-                count_str = attack_id.split("-")[1]
-                count = int(count_str.replace("k", "000"))
+            elif attack_id == "ddos":
+                count = int(data.get("count", 50000))
                 rate = atk.ddos(count)
                 return jsonify({"status": "success",
-                                "detail": f"{count} req flood complete — {rate:.0f} req/s"})
+                                "detail": f"{count:,} req flood complete — {rate:.0f} req/s"})
 
             else:
                 return jsonify({"status": "error", "detail": f"Unknown attack: {attack_id}"}), 400

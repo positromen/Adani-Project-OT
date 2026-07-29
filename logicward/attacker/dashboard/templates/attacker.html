@@ -52,6 +52,12 @@
           <h3 class="card-title">{{ atk.name }}</h3>
           <p class="card-mitre">{{ atk.mitre }}</p>
           <p class="card-desc">{{ atk.description }}</p>
+          {% if atk.id == 'ddos' %}
+          <div class="card-slider" style="margin-top:15px; margin-bottom:15px;">
+             <input type="range" id="ddos-slider" min="1000" max="250000" step="1000" value="50000" style="width: 100%; accent-color: var(--color-critical);" oninput="document.getElementById('ddos-val').innerText = parseInt(this.value).toLocaleString()">
+             <div style="font-family:monospace; color:var(--text-dim); margin-top:8px; font-size: 0.9em;">Packets to send: <strong id="ddos-val" style="color:var(--text-bright)">50,000</strong></div>
+          </div>
+          {% endif %}
           <div class="card-footer">
             <button class="btn-attack" onclick="fireAttack('{{ atk.id }}', this)">
               <span class="btn-label">EXECUTE</span>

@@ -28,11 +28,17 @@ async function fireAttack(id, btn) {
 
   log(`EXECUTING attack: <strong>${id}</strong>`, "attack");
 
+  let payload = { id: id };
+  if (id === "ddos") {
+    const slider = document.getElementById("ddos-slider");
+    if (slider) payload.count = parseInt(slider.value, 10);
+  }
+
   try {
     const resp = await fetch("/api/attack", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify(payload),
     });
     const data = await resp.json();
 

