@@ -126,13 +126,13 @@ class ChemicalDataStore:
             purge_flow = purge * (0.6 + self.pressure / 3200.0)
             product_flow = product * (0.4 + self.level / 100.0)
 
-            self.level += (inflow - product_flow) * dt * 0.25
+            self.level += (inflow - product_flow) * dt * 2.5
             self.level = max(0.0, min(125.0, self.level))
 
             dp = inflow * 1.0 - purge_flow * 1.26
             if esd:
                 dp = -purge_flow * 1.5 - 120.0
-            self.pressure += dp * dt * 0.9
+            self.pressure += dp * dt * 5.0
             self.pressure = max(0.0, min(4200.0, self.pressure))
 
             tgtA = 30.0 + f1 * 0.3
