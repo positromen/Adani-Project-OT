@@ -3,7 +3,8 @@
 **Live OT drift-detection appliance** — detect unauthorized PLC logic changes on a simulated thermal power plant before they become operational risk.
 
 > **[USAGE.md](USAGE.md)** — complete how-to (run, demo, dashboard tour, attacker CLI, Pi deployment, config, troubleshooting).
-> Full specification: **[DESIGN.md](DESIGN.md)** · shareable **[LogicWard_Design.pdf](LogicWard_Design.pdf)** (also `LogicWard_Design.tex`).
+> **[LogicWard_Demo_Guide.pdf](LogicWard_Demo_Guide.pdf)** — presenter runbook (attack → detection → dashboard → MITRE, act by act).
+> Full specification: **[DESIGN.md](DESIGN.md)** · shareable **[LogicWard_Design.pdf](LogicWard_Design.pdf)** (also `.tex`).
 
 ## What it is
 
@@ -18,6 +19,7 @@ The PLC "program" is a real **Rockwell L5X** file — **data to baseline and dif
 - **HMAC-SHA256 signed baseline** — tampering the locked baseline breaks the signature.
 - **Passive FIM (`watchdog`)** — watches the Pi's running `live.L5X` and the laptop's signed baseline.
 - **GitHub-style diff** — side-by-side red/green rung diff with word-level highlights.
+- **Animated SCADA mimic** — a live single-line diagram of the plant (fuel → boiler → turbine → generator → 115 kV grid); components redline, pulse, and pin their MITRE technique the instant an attack lands, click to acknowledge.
 - **Evidence log (SIEM-ready JSONL) + signed PDF** forensic report.
 - **RBAC dashboard** — Operator / Engineer / SOC Analyst, with role-gated response actions.
 
@@ -29,7 +31,7 @@ Laptop                event bus + drift engine + baseline + MITRE + SOC dashboar
 Attacker (2nd box)    Modbus writes · POST /program/download · DDoS flood · rogue ARP
 ```
 
-Runs single-machine by default (an **embedded plant**); set `LOGICWARD_EMBED_PLANT=0` for the real Pi split.
+Runs single-machine by default (an **embedded plant**); set `LOGICWARD_EMBED_PLANT=0` for the real Pi split — **verified end-to-end on a Raspberry Pi 4 ↔ laptop over Wi-Fi** (cyber detection + agent event-forwarding both live).
 
 ## Status — built & verified (98/98 automated checks)
 
@@ -40,9 +42,9 @@ Runs single-machine by default (an **embedded plant**); set `LOGICWARD_EMBED_PLA
 | Plant | `plant/{modbus_server,logic_store,rung_to_register}` | ✅ `smoke_plant` 14/14 |
 | Cyber plane | `engine/baseline` (HMAC) + `engine/drift` (6 mutations) | ✅ `smoke_drift` 18/18 |
 | Agent plane | `agent/agent` + `sensors/{link_watch,arp_watch,gpio_tamper,resource,fim_watch}` | ✅ `smoke_agent` 10/10 |
-| Dashboard | `dashboard/{app,evidence}` + templates/static (RBAC, live view, diff, PDF) | ✅ `smoke_dashboard` 15/15 |
+| Dashboard | `dashboard/{app,evidence}` + templates/static (RBAC, animated mimic, diff, PDF) | ✅ `smoke_dashboard` 15/15 |
 | Attacker | `attacker/{attacks,demo_sequence}` | ✅ `smoke_attacker` 10/10 |
-| Two-host Pi run | real hardware over LAN | ⬜ pending Pi setup |
+| Two-host Pi run | Raspberry Pi 4 (Modbus PLC + agent) ↔ laptop (engine + dashboard) over Wi-Fi | ✅ verified on real hardware — cyber + agent-forward paths live end-to-end |
 
 ## Quick start (single machine)
 
@@ -62,20 +64,24 @@ python -m logicward.tests.smoke_drift      # (bus | l5x | plant | drift | agent 
 
 Logins: `operator/operator123` · `engineer/engineer123` · `soc/soc123`.
 
-## Run against a real Pi (split deployment)
+## Run against a real Pi (split deployment) — verified
+
+Scripted in [`deploy/`](deploy/) and walked through in **[USAGE.md §7](USAGE.md)**. Tested on a Raspberry Pi 4 (Raspberry Pi OS 64-bit) and a Windows laptop sharing a Wi-Fi hotspot.
 
 ```bash
-# On the Pi: run the PLC (Modbus), the program endpoints, and the sensor agent
-python -m logicward.plant.modbus_server        # Modbus TCP
-python -m logicward.plant.logic_store          # GET/POST /program
-LOGICWARD_INGEST_URL=http://<laptop-ip>:8080/api/ingest python -m logicward.agent.agent --iface eth0
+# On the Pi (both devices on the same Wi-Fi):
+bash deploy/pi_bootstrap.sh <laptop-ip>        # venv + deps + ingest URL
+bash deploy/run_pi.sh                           # PLC (:5020) + program (:8081) + agent
 
-# On the laptop: dashboard reads the Pi remotely
-LOGICWARD_EMBED_PLANT=0 LOGICWARD_PI_HOST=<pi-ip> python -m logicward.dashboard.app
+# On the laptop:
+#   (one-time) allow inbound 8080:  netsh advfirewall firewall add rule name="LogicWard" dir=in action=allow protocol=TCP localport=8080
+.\deploy\run_laptop.ps1 -PiHost siddhesh.local  # dashboard in remote mode (reads the Pi)
 
-# From the attacker box: drive the attacks
-python -m logicward.attacker.attacks --host <pi-ip> logic-inversion
+# From the attacker box (or the laptop):
+python -m logicward.attacker.attacks --host siddhesh.local logic-inversion
 ```
+
+> The agent uses `wlan0` on a Wi-Fi Pi (the bootstrap sets this). If the repo is **private**, the Pi can't `git clone` it — copy the working tree from the laptop instead (`tar … | ssh pi "tar x"`), or make the repo public. Campus Wi-Fi often blocks device-to-device (client isolation); a phone hotspot is the reliable fallback.
 
 ## Configuration
 
@@ -102,5 +108,5 @@ Lifted and re-themed from three prior repos: **OT_SECURITY** (Modbus server + at
 
 ## Notes
 
-- MITRE ATT&CK-for-ICS technique IDs in `engine/mitre_map.py` are rule-based mappings; see the module for their verification status.
+- MITRE ATT&CK-for-ICS technique IDs in `engine/mitre_map.py` are rule-based and **verified against the live ICS matrix** (each mapping carries a `verified` flag; physical/baseline tamper with no matching technique are honestly marked `N/A`).
 - Demo-grade auth (plaintext passwords) and a static HMAC/ingest token are intentional for the demo and documented as such.

@@ -790,12 +790,15 @@ Prahari & \code{index.css} design tokens & dashboard styling \\
 6 & \code{engine/mitre\_map.py} (verified) + \code{response.py} + \code{l5x\_diff} & folded into suites \\
 7 & \code{dashboard/} (RBAC, live view, GitHub diff, feed, evidence, PDF) & \code{smoke\_dashboard} 15/15 \\
 8 & \code{attacker/attacks.py} + \code{demo\_sequence.py} & \code{smoke\_attacker} 10/10 + live demo \\
-9 & Two-host integration on real Pi + laptop & pending Pi setup \\
+9 & Two-host integration on real Pi + laptop & verified on a Pi 4 + laptop over Wi-Fi \\
 \bottomrule
 \end{tabularx}
 
 \smallskip
-\textbf{Delivered: 98/98 checks across 7 suites.} Only stage 9 (real hardware) remains.
+\textbf{Delivered: 98/98 checks across 7 suites, plus a verified real-hardware two-machine
+run} --- a Raspberry Pi 4 running the Modbus PLC + sensor agent, a laptop running the engine
++ SOC dashboard, with live cyber detection (laptop$\rightarrow$Pi) and agent event-forwarding
+(Pi$\rightarrow$laptop) both confirmed end-to-end.
 
 % ==================================================================
 \section*{Appendix A --- Glossary}

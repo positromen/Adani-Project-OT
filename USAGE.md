@@ -3,8 +3,10 @@
 Everything you need to install, run, demo, and deploy LogicWard — the live OT
 drift-detection appliance for a simulated thermal power plant.
 
-> Design & architecture: **[DESIGN.md](DESIGN.md)** · shareable **[LogicWard_Design.pdf](LogicWard_Design.pdf)**
-> Repo: **https://github.com/positromen/Adani-Project**
+> Design & architecture: **[DESIGN.md](DESIGN.md)** · shareable **[LogicWard_Design.pdf](LogicWard_Design.pdf)** · presenter **[LogicWard_Demo_Guide.pdf](LogicWard_Demo_Guide.pdf)**
+> Repo: **https://github.com/positromen/Adani-Project-OT**
+>
+> **Status:** built and passing 98/98 automated checks across 7 suites, **and verified end-to-end on real hardware** (Raspberry Pi 4 PLC ↔ laptop SOC over Wi-Fi).
 
 **Contents**
 1. [What it does](#1-what-it-does)
@@ -48,8 +50,8 @@ You can run the whole thing **on one machine** (an embedded plant — no Pi need
 - A modern browser for the dashboard.
 
 ```bash
-git clone https://github.com/positromen/Adani-Project.git
-cd Adani-Project
+git clone https://github.com/positromen/Adani-Project-OT.git
+cd Adani-Project-OT
 python -m venv .venv
 
 # activate the venv:
@@ -184,9 +186,9 @@ Each program-download mutation also trips the passive FIM sensor
 
 Examples:
 ```bash
-python -m logicward.attacker.attacks --host siddhesh-pi.local logic-inversion
-python -m logicward.attacker.attacks --host 192.168.1.42 --modbus-port 5020 force-coil
-python -m logicward.attacker.attacks --host 192.168.1.42 ddos --count 1000
+python -m logicward.attacker.attacks --host siddhesh.local logic-inversion
+python -m logicward.attacker.attacks --host 10.119.190.53 --modbus-port 5020 force-coil
+python -m logicward.attacker.attacks --host 10.119.190.53 ddos --count 1000
 ```
 
 ---
@@ -197,40 +199,50 @@ Topology: **Pi** = the PLC + sensor agent; **laptop** = engine + dashboard; **at
 = any box on the LAN (can be the laptop). All three must be on the **same network**
 (the Pi here is on Wi-Fi `Noone`, so is `wlan0`).
 
-### 7.1 On the Pi (`siddhesh-pi`, user `siddhesh`)
+> **Network tip (verified):** campus/enterprise Wi-Fi often enables **client isolation**,
+> which blocks the laptop↔Pi traffic this needs. A **phone hotspot** is the reliable
+> fallback — connect *both* devices to it. Confirm reachability first: from the laptop
+> `ping siddhesh.local`, and from the Pi `ping <laptop-ip>`.
 
-SSH in from the laptop (Raspberry Pi OS advertises `siddhesh-pi.local` over mDNS):
+### 7.1 On the Pi (hostname `siddhesh`, user `siddhesh`)
+
+SSH in from the laptop (Raspberry Pi OS advertises `siddhesh.local` over mDNS):
 ```bash
-ssh siddhesh@siddhesh-pi.local        # password: the one set in Pi Imager
+ssh siddhesh@siddhesh.local            # password: the one set in Pi Imager
+# re-flashed the Pi? clear the stale host key first:
+#   ssh-keygen -R siddhesh.local
 ```
 
-Clone + bootstrap (creates a venv, installs deps incl. scapy/gpiozero, writes the
-ingest URL). Pass the **laptop's** LAN IP (find it on the laptop with `ipconfig`):
+Get the project onto the Pi, then bootstrap (venv + deps incl. scapy/gpiozero, writes
+the ingest URL). Pass the **laptop's** LAN IP (find it with `ipconfig`):
 ```bash
-git clone https://github.com/positromen/Adani-Project.git
-cd Adani-Project
-bash deploy/pi_bootstrap.sh 192.168.1.50          # <- your laptop's IP
-```
+# If the repo is PUBLIC:
+git clone https://github.com/positromen/Adani-Project-OT.git && cd Adani-Project-OT
 
-Start the PLC + program endpoints + sensor agent:
-```bash
-bash deploy/run_pi.sh
-#   run instead as:  SUDO_AGENT=1 bash deploy/run_pi.sh
-#   to let arp_watch do a live ARP sweep (rogue-device sensor needs root)
+# If the repo is PRIVATE (the Pi can't clone it) — copy the tree from the laptop instead.
+# Run this ON THE LAPTOP from the project folder:
+#   tar czf - --exclude=.git --exclude=logicward/data --exclude=.venv logicward deploy requirements.txt \
+#     | ssh siddhesh@siddhesh.local "mkdir -p ~/Adani-Project-OT && tar xzf - -C ~/Adani-Project-OT"
+# then back on the Pi:  cd ~/Adani-Project-OT
+
+bash deploy/pi_bootstrap.sh 10.119.190.79        # <- your laptop's IP
+bash deploy/run_pi.sh                             # PLC :5020 + program :8081 + agent (wlan0)
+#   SUDO_AGENT=1 bash deploy/run_pi.sh            # run agent as root for a live ARP sweep
 ```
-Note the Pi's own IP for the laptop/attacker: `hostname -I`.
+Note the Pi's own IP: `hostname -I`.
 
 ### 7.2 On the laptop
 
-One-time — allow the Pi agent to reach the ingest port (run PowerShell **as admin**):
-```powershell
-New-NetFirewallRule -DisplayName LogicWard -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow
+One-time — allow the Pi agent to reach the ingest port. In an **admin Command Prompt**:
 ```
+netsh advfirewall firewall add rule name="LogicWard" dir=in action=allow protocol=TCP localport=8080
+```
+(or, in an **admin PowerShell**: `New-NetFirewallRule -DisplayName LogicWard -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow`)
 
 Start the dashboard in **remote** mode (reads the real Pi):
 ```powershell
-.\deploy\run_laptop.ps1 -PiHost siddhesh-pi.local
-# or:  .\deploy\run_laptop.ps1 -PiHost 192.168.1.42
+.\deploy\run_laptop.ps1 -PiHost siddhesh.local
+# or by IP:  .\deploy\run_laptop.ps1 -PiHost 10.119.190.53
 ```
 Open **http://localhost:8080/** (login `soc/soc123`). The Live Plant now reflects the
 Pi's real Modbus registers; the Pi agent's physical/resource/FIM events stream in.
@@ -238,11 +250,13 @@ Pi's real Modbus registers; the Pi agent's physical/resource/FIM events stream i
 ### 7.3 From the attacker box (or the laptop)
 
 ```bash
-python -m logicward.attacker.attacks --host siddhesh-pi.local logic-inversion
-python -m logicward.attacker.attacks --host siddhesh-pi.local ddos --count 800
+python -m logicward.attacker.attacks --host siddhesh.local logic-inversion
+python -m logicward.attacker.attacks --host siddhesh.local ddos --count 800
 ```
 
-Unplug the Pi's cable / open its case to fire the physical sensors for real.
+To fire the **physical** plane for real, the Pi needs a wired `eth0` (pull the cable →
+`link_down`) and a GPIO tamper switch (open the case → `enclosure_open`); on a Wi-Fi-only
+Pi those sensors run in fallback while the **cyber + resource** planes are fully live.
 
 ---
 
@@ -321,7 +335,9 @@ Each prints `RESULT: N/N checks passed` and exits non-zero on any failure.
 | `pip install` fails on the Pi with "externally-managed-environment" | Use the venv (Bookworm/PEP 668): `python3 -m venv .venv && source .venv/bin/activate`. `pi_bootstrap.sh` does this for you. |
 | Dashboard shows no Pi data in remote mode | Same Wi-Fi? Pi services running (`bash deploy/run_pi.sh`)? Try the Pi's IP instead of `.local`. Check `LOGICWARD_PI_HOST`. |
 | Pi agent events never appear | Windows Firewall — allow inbound TCP 8080 (§7.2). Confirm `LOGICWARD_INGEST_URL` points at the laptop IP and the `LOGICWARD_TOKEN` matches both sides. |
-| `siddhesh-pi.local` won't resolve on Windows | Install Bonjour, or use the Pi's numeric IP (`hostname -I` on the Pi). |
+| `siddhesh.local` won't resolve on Windows | Install Bonjour, or use the Pi's numeric IP (`hostname -I` on the Pi). |
+| Laptop & Pi can't reach each other on campus Wi-Fi | Client isolation — switch both to a phone hotspot (§7). |
+| Pi can't `git clone` (asks for username) | The repo is private — copy the tree from the laptop instead (§7.1), or make the repo public. |
 | Rogue-device (ARP) sensor never fires | The live ARP sweep needs root: `SUDO_AGENT=1 bash deploy/run_pi.sh`. |
 | Port 502 permission denied | Use the default 5020 (non-root), or run the Modbus server with `sudo`. |
 | Port 8080 already in use | A previous dashboard/demo is still running — stop it, or change `LOGICWARD_INGEST_PORT`. |

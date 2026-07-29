@@ -158,14 +158,22 @@ python -m logicward.attacker.attacks logic-inversion
 python -m logicward.attacker.attacks ddos --count 800
 \end{lstlisting}
 
-\subsection{Option C --- the real two-machine setup}
-Pi runs the PLC + sensor agent; the laptop runs the dashboard; a third box attacks.
-Full runbook in \textbf{USAGE.md \S7}. In short:
+\subsection{Option C --- the real two-machine setup (verified on hardware)}
+Pi runs the PLC + sensor agent; the laptop runs the dashboard; a third box attacks. This has
+been \textbf{run and verified end-to-end on a Raspberry Pi 4 + laptop over Wi-Fi} --- live cyber
+detection (laptop$\rightarrow$Pi Modbus + program pull) and agent event-forwarding
+(Pi$\rightarrow$laptop ingest) both confirmed. Full runbook in \textbf{USAGE.md \S7}. In short:
 \begin{lstlisting}
 # On the Pi:      bash deploy/pi_bootstrap.sh <laptop-ip>   &&   bash deploy/run_pi.sh
-# On the laptop:  .\deploy\run_laptop.ps1 -PiHost siddhesh-pi.local
-# From attacker:  python -m logicward.attacker.attacks --host siddhesh-pi.local logic-inversion
+# On the laptop:  .\deploy\run_laptop.ps1 -PiHost siddhesh.local
+# From attacker:  python -m logicward.attacker.attacks --host siddhesh.local logic-inversion
 \end{lstlisting}
+\begin{note}
+\textbf{Campus Wi-Fi tip (learned live):} enterprise networks often enable client isolation
+that blocks laptop$\leftrightarrow$Pi traffic --- a phone hotspot (both devices on it) is the
+reliable fallback. A Wi-Fi-only Pi runs the physical sensors (\code{link\_watch},
+\code{gpio\_tamper}) in fallback; the cyber + resource planes are fully live.
+\end{note}
 
 \begin{say}
 \textbf{Say:} ``Everything you're about to see is two computers talking over Wi-Fi --- an

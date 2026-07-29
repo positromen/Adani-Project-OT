@@ -498,9 +498,9 @@ logicward/
 | **6** | `engine/mitre_map.py` (verified) + `engine/response.py` + `l5x_diff` | ✅ folded into suites |
 | **7** | `dashboard/` (RBAC, live view, GitHub diff, alert feed, evidence, PDF) | ✅ `smoke_dashboard` 15/15 |
 | **8** | `attacker/attacks.py` + `demo_sequence.py` | ✅ `smoke_attacker` 10/10 + live demo |
-| **9** | Two-host integration on real Pi + laptop | ⬜ pending Pi setup |
+| **9** | Two-host integration on real Pi + laptop | ✅ verified on a Raspberry Pi 4 + laptop over Wi-Fi (cyber detection + agent event-forwarding live end-to-end) |
 
-**Delivered: 98/98 checks across 7 suites.** Stage 9 (real hardware) remains.
+**Delivered: 98/98 checks across 7 suites, plus a verified real-hardware two-machine run.**
 
 ---
 
