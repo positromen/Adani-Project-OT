@@ -90,11 +90,21 @@ class Dashboard:
         return self.signed
 
     def _restore_baseline_program(self) -> bool:
-        """Restore hook: re-download the approved program to the (embedded) plant."""
+        """Restore hook: re-download the approved program to the plant."""
+        l5x_str = self.signed["manifest"]["l5x"]
         live = getattr(self.plant, "live_path", None)
         if live is not None:
-            live.write_text(self.signed["manifest"]["l5x"], encoding="utf-8")
+            live.write_text(l5x_str, encoding="utf-8")
             return True
+        
+        prog_url = getattr(self.plant, "program_url", None)
+        if prog_url:
+            import requests
+            try:
+                requests.post(f"{prog_url}/download", json={"l5x": l5x_str}, timeout=5)
+                return True
+            except Exception:
+                pass
         return False
 
     # -- background drift loop --
