@@ -18,6 +18,7 @@
       <a class="nav-item" data-tab="plant">Live Plant</a>
       <a class="nav-item" data-tab="diff">Program Diff</a>
       <a class="nav-item" data-tab="alerts">Alerts <span id="alert-badge" class="badge">0</span></a>
+      <a class="nav-item" data-tab="roles">Roles &amp; Access</a>
       <a class="nav-item" data-tab="evidence">Evidence</a>
     </nav>
     <div class="side-baseline">
@@ -239,6 +240,105 @@
     <section id="tab-evidence" class="panel hidden">
       <div class="card"><div class="card-h">Evidence log <span class="muted tiny">who · when · what · MITRE ATT&amp;CK for ICS</span></div>
         <div id="evidence-table" class="alerts"></div>
+      </div>
+    </section>
+
+    <!-- Roles & Access -->
+    <section id="tab-roles" class="panel hidden">
+      <div class="card">
+        <div class="card-h">Roles &amp; Access Definitions</div>
+        <div style="padding: 16px;">
+          <div class="muted tiny" style="margin-bottom:14px">
+            OT/ICS functional roles and their monitored scopes within LogicWard.
+          </div>
+          <div class="role-grid">
+            <div class="role-card">
+              <div class="role-avatar">🧑‍🏭</div>
+              <div class="role-name">Operator (DCS/Control Room)</div>
+              <div class="role-sub">Live Plant Access</div>
+              <ul class="role-points">
+                <li>Live HMI/plant view and real-time alarm feed access only.</li>
+                <li>Normal behavior involves acknowledging alarms during shift hours.</li>
+                <li>Monitored for setpoint changes outside pre-approved operating limits.</li>
+              </ul>
+              <div class="role-tags">
+                <span class="tag">Live HMI</span>
+                <span class="tag">Alarm Ack</span>
+              </div>
+            </div>
+
+            <div class="role-card">
+              <div class="role-avatar">🧑‍🔧</div>
+              <div class="role-name">C&amp;I / Control Engineer</div>
+              <div class="role-sub">PLC Program Access</div>
+              <ul class="role-points">
+                <li>Baseline capture, program (L5X) diff view, re-baseline and restore actions.</li>
+                <li>Normal behavior involves scheduled maintenance-window logic pushes.</li>
+                <li>Monitored for unscheduled ladder logic or setpoint edits.</li>
+              </ul>
+              <div class="role-tags">
+                <span class="tag">PLC Logic</span>
+                <span class="tag">Baseline</span>
+              </div>
+            </div>
+            <div class="role-card">
+              <div class="role-avatar">🧑‍💻</div>
+              <div class="role-name">OT Network / Security Engineer</div>
+              <div class="role-sub">Infrastructure Access</div>
+              <ul class="role-points">
+                <li>Firewall, DMZ, and network segmentation configuration access.</li>
+                <li>Normal behavior includes patch scheduling and asset inventory updates.</li>
+                <li>Monitored for unapproved port changes or lateral-movement patterns.</li>
+              </ul>
+              <div class="role-tags">
+                <span class="tag">Network Configs</span>
+                <span class="tag">Firewall</span>
+              </div>
+            </div>
+            <div class="role-card">
+              <div class="role-avatar">🕵️</div>
+              <div class="role-name">SOC Analyst</div>
+              <div class="role-sub">Oversight Role</div>
+              <ul class="role-points">
+                <li>Full alert feed access, MITRE ATT&amp;CK mapping, forensic PDF export.</li>
+                <li>Normal behavior includes alert triage and incident investigation.</li>
+                <li>Monitored for tampering with alert states or self-closing incidents.</li>
+              </ul>
+              <div class="role-tags">
+                <span class="tag">Security Dashboard</span>
+                <span class="tag">Evidence Export</span>
+              </div>
+            </div>
+            <div class="role-card">
+              <div class="role-avatar">👷</div>
+              <div class="role-name">Vendor / OEM Contractor</div>
+              <div class="role-sub">Scoped External Access</div>
+              <ul class="role-points">
+                <li>Time-bound, highly restricted access to specific PLC/RTU for maintenance.</li>
+                <li>Normal behavior is strictly contained to assigned IPs and time windows.</li>
+                <li>Monitored heavily for any deviation or escalation attempts.</li>
+              </ul>
+              <div class="role-tags">
+                <span class="tag">VPN Access</span>
+                <span class="tag">Scoped Dev</span>
+              </div>
+            </div>
+            <div class="role-card">
+              <div class="role-avatar">🧑‍💼</div>
+              <div class="role-name">CISO / Plant Cybersecurity Head</div>
+              <div class="role-sub">Incident Command &amp; Compliance</div>
+              <ul class="role-points">
+                <li>Full cross-role visibility, final incident sign-off, compliance reporting.</li>
+                <li>Normal behavior includes periodic audit review and CERT-In reporting.</li>
+                <li>Monitored for out-of-cycle role/permission changes.</li>
+              </ul>
+              <div class="role-tags">
+                <span class="tag">Full Access</span>
+                <span class="tag">Compliance</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </main>

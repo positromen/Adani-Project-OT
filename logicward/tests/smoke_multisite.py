@@ -57,7 +57,7 @@ def main() -> int:
     check("Site-B state API", c.get("/api/site-b/state").status_code == 200)
 
     # -- 5. chemical attack -> unified feed, site-tagged, MITRE-mapped --
-    r = c.post("/api/site-b/attack/defeat-protection").get_json()
+    r = c.post("/api/site-b/attack/pressure-redline").get_json()
     check("chem attack ok", r.get("ok") is True)
     time.sleep(1.2)
     ev = c.get("/api/events?since=0").get_json()["events"]
@@ -85,7 +85,7 @@ def main() -> int:
     ahtml = ac.get("/").data
     check("attacker console has thermal section", b"Thermal Power Plant" in ahtml)
     check("attacker console has chemical section", b"GRFICS Chemical Reactor" in ahtml)
-    resp = ac.post("/api/attack", json={"id": "valve-override"}).get_json()
+    resp = ac.post("/api/attack", json={"id": "pressure-redline"}).get_json()
     check("attacker console fires chemical attack", resp.get("status") == "success")
 
     total = _passed + _failed
