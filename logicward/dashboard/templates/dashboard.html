@@ -34,7 +34,8 @@
 
   <main class="content">
     <header class="topbar">
-      <div class="topbar-title"><span id="live-dot" class="live-dot"></span> Thermal Power Plant — <span id="controller">—</span></div>
+      <div class="topbar-title"><span id="live-dot" class="live-dot"></span> <span id="site-title">Thermal Power Plant</span> — <span id="controller">—</span></div>
+      <div class="site-tabs" id="siteTabs" title="Monitored sites"></div>
       <div class="sev-chips">
         <span class="chip crit">CRIT <b id="c-crit">0</b></span>
         <span class="chip high">HIGH <b id="c-high">0</b></span>
@@ -63,6 +64,7 @@
 
     <!-- Live Plant -->
     <section id="tab-plant" class="panel hidden">
+     <div id="plant-thermal">
       <div class="card mimic-card">
         <div class="card-h">Live plant mimic
           <span class="mimic-legend">
@@ -161,11 +163,46 @@
         <div class="card"><div class="card-h">Setpoints (holding registers)</div><div id="plant-setpoints" class="value-grid"></div></div>
       </div>
       <div class="card"><div class="card-h">All process values</div><div id="plant-values" class="value-grid"></div></div>
+     </div><!-- /plant-thermal -->
+
+     <div id="plant-chem" class="hidden">
+      <div class="chem-wrap">
+        <div class="card chem-stage">
+          <div class="card-h">Live 3D process — GRFICS chemical reactor
+            <span class="muted tiny" style="margin-left:auto">Modbus TCP :5021 · unauthenticated</span>
+          </div>
+          <iframe id="chem-frame" class="chem-frame" title="GRFICS chemical reactor 3D"></iframe>
+        </div>
+        <div class="chem-side">
+          <div class="card">
+            <div class="card-h">Live process</div>
+            <div class="chem-gauges">
+              <div class="cg"><div class="cg-k">Reactor pressure</div><div class="cg-v" id="cg-press">—</div><div class="cg-m"><div id="cgm-press"></div></div></div>
+              <div class="cg"><div class="cg-k">Liquid level</div><div class="cg-v" id="cg-level">—</div><div class="cg-m"><div id="cgm-level"></div></div></div>
+              <div class="cg"><div class="cg-k">Feed-1 valve</div><div class="cg-v" id="cg-f1">—</div><div class="cg-m"><div id="cgm-f1"></div></div></div>
+              <div class="cg"><div class="cg-k">Purge valve</div><div class="cg-v" id="cg-purge">—</div><div class="cg-m"><div id="cgm-purge"></div></div></div>
+            </div>
+            <div style="margin-top:10px"><span class="pill" id="cg-esd">Reactor: —</span></div>
+          </div>
+          <div class="card" data-role-min="engineer">
+            <div class="card-h">Attacks <span class="muted tiny" style="margin-left:auto">unauthenticated Modbus writes</span></div>
+            <div class="chem-atks">
+              <button class="chem-atk" data-atk="defeat-protection"><b>1 · Defeat protection</b><small>Raise pressure safety setpoint → trip disarmed</small></button>
+              <button class="chem-atk" data-atk="valve-override"><b>2 · Valve override</b><small>Feeds 100%, purge shut → pressure redlines</small></button>
+              <button class="chem-atk" data-atk="overfill"><b>Overfill tank</b><small>Product shut, feeds high → level overflows</small></button>
+              <button class="chem-atk" data-atk="estop-injection"><b>E-stop injection</b><small>Force emergency shutdown (denial)</small></button>
+              <button class="chem-atk" data-atk="pump-kill"><b>Feed pump kill</b><small>Force feed pump 1 off</small></button>
+              <button class="chem-atk ghost" id="chem-reset"><b>Restore baseline</b><small>Revert plant to approved config</small></button>
+            </div>
+          </div>
+        </div>
+      </div>
+     </div><!-- /plant-chem -->
     </section>
 
     <!-- Program Diff -->
     <section id="tab-diff" class="panel hidden">
-      <div class="card">
+      <div class="card" id="diff-thermal">
         <div class="card-h">
           Baseline vs running program
           <span id="diff-summary" class="diff-summary"></span>
@@ -175,6 +212,18 @@
           <span>live <b id="diff-lhash">—</b></span>
         </div>
         <div id="diff-body" class="diff"></div>
+      </div>
+      <div class="card hidden" id="diff-chem-note">
+        <div class="card-h">Program monitoring — GRFICS chemical reactor</div>
+        <p class="muted" style="line-height:1.6">
+          This site is monitored on the <b>register plane</b> (live Modbus holding
+          registers &amp; coils diffed against the signed baseline). The OpenPLC
+          controller runs <b>Structured Text</b>, not Rockwell L5X, so the
+          rung-level program diff shown for the thermal plant does not apply here.
+          A Structured-Text program-drift parser is on the roadmap — for now,
+          setpoint and command tampering are caught as register drift and appear
+          in the unified alert feed.
+        </p>
       </div>
     </section>
 

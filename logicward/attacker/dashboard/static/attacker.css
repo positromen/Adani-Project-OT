@@ -429,3 +429,6 @@ body {
   .card-grid { grid-template-columns: 1fr; }
   .util-grid { grid-template-columns: 1fr; }
 }
+
+/* multi-site: target subtitle in section headers */
+.section-title .target-sub{ font-family: var(--font-mono); font-size: 0.62em; font-weight: 500; color: var(--text-dim); margin-left: 12px; letter-spacing: 0.03em; text-transform: none; }

@@ -39,6 +39,17 @@ AGENT_FLUSH_INTERVAL_SEC = float(_env("AGENT_FLUSH_INTERVAL", "1.0"))
 # it detects tamper-without-the-key, not a full KMS. Change it per deployment.
 HMAC_KEY = _env("HMAC_KEY", "logicward-baseline-signing-key-change-me")
 
+# ── Site B: GRFICS chemical reactor (3D demo) ─────────────────────────────────
+# The compiled Unity WebGL build ships with the GRFICS repo (sibling of this one
+# by default). Override with LOGICWARD_GRFICS_BUILD_DIR if you move it.
+GRFICS_BUILD_DIR = Path(_env(
+    "GRFICS_BUILD_DIR",
+    str(Path(__file__).resolve().parents[2]
+        / "Open Source OT Security Lab" / "GRFICSv3"
+        / "simulation" / "web_visualization")))
+GRFICS_MODBUS_PORT = int(_env("GRFICS_MODBUS_PORT", "5021"))
+GRFICS_DASH_PORT = int(_env("GRFICS_DASH_PORT", "8095"))
+
 # ── Storage ───────────────────────────────────────────────────────────────────
 DATA_DIR = Path(_env("DATA_DIR", str(Path(__file__).resolve().parent / "data")))
 EVIDENCE_PATH = Path(_env("EVIDENCE_PATH", str(DATA_DIR / "evidence.jsonl")))

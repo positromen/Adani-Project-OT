@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LogicWard · Site B — {{ site_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='grfics.css') }}" />
+</head>
+<body>
+  <div class="top">
+    <div class="dot"></div>
+    <div>
+      <h1>LogicWard · Site B — {{ site_name }}</h1>
+      <div class="sub">OT drift detection over a live 3D chemical process · GRFICSv3</div>
+    </div>
+    <span class="badge">Modbus TCP 127.0.0.1:{{ modbus_port }} · unauthenticated</span>
+    <span class="badge" id="integrity">baseline: LOCKED</span>
+    <div class="spacer"></div>
+    <button class="btn ok" id="reset">Restore baseline</button>
+  </div>
+
+  <div class="wrap">
+    <div class="stage">
+      <span class="tag">Live 3D process — Fortiphyd GRFICS reactor</span>
+      <iframe src="/viz/" title="GRFICS 3D"></iframe>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h2>Live process</h2>
+        <div class="gauges">
+          <div class="gauge"><div class="k">Reactor pressure</div>
+            <div class="v" id="g-press">— <small>kPa</small></div>
+            <div class="meter"><div id="m-press"></div></div></div>
+          <div class="gauge"><div class="k">Liquid level</div>
+            <div class="v" id="g-level">— <small>%</small></div>
+            <div class="meter"><div id="m-level"></div></div></div>
+          <div class="gauge"><div class="k">Feed 1 valve</div>
+            <div class="v" id="g-f1">— <small>%</small></div>
+            <div class="meter"><div id="m-f1"></div></div></div>
+          <div class="gauge"><div class="k">Purge valve</div>
+            <div class="v" id="g-purge">— <small>%</small></div>
+            <div class="meter"><div id="m-purge"></div></div></div>
+        </div>
+        <div style="margin-top:10px"><span class="pill run" id="esd">Reactor: RUNNING</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Attacks <span class="count">unauthenticated Modbus writes</span></h2>
+        <div class="atk">
+          <button class="btn danger" data-atk="defeat-protection">1 · Defeat protection
+            <div class="hint">Raise pressure safety setpoint → trip disarmed</div></button>
+          <button class="btn danger" data-atk="valve-override">2 · Valve override
+            <div class="hint">Feeds 100%, purge shut → pressure redlines</div></button>
+          <button class="btn danger" data-atk="overfill">Overfill tank
+            <div class="hint">Product shut, feeds high → level overflows</div></button>
+          <button class="btn danger" data-atk="estop-injection">E-stop injection
+            <div class="hint">Force emergency shutdown coil (denial)</div></button>
+          <button class="btn danger" data-atk="pump-kill">Feed pump kill
+            <div class="hint">Force feed pump 1 off</div></button>
+          <button class="btn" id="rundemo" style="margin-top:4px">▶ Run scripted demo (1 → 2)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Detection feed <span class="count" id="evcount">0 events</span></h2>
+        <div class="feed" id="feed"><div class="empty">No drift detected — plant matches baseline.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='grfics.js') }}"></script>
+</body>
+</html>

@@ -12,6 +12,19 @@
   let activeTab = "overview";
   const acked = new Set();
 
+  // ---- multi-site ----
+  let activeSite = "thermal-pi";          // "thermal-pi" | "grfics-chem" | "all"
+  let chemAvailable = false;
+  let chemFrameLoaded = false;
+  const SITE_META = {
+    "thermal-pi": { name: "Thermal Power Plant", icon: "⚡" },
+    "grfics-chem": { name: "GRFICS Chemical Reactor", icon: "⚗️" },
+    "all": { name: "All Sites", icon: "🌐" },
+  };
+  const eventSite = (e) => (e.details && e.details.site) || "thermal-pi";
+  const siteVisible = (e) => activeSite === "all" || eventSite(e) === activeSite;
+  const siteLabel = (id) => (SITE_META[id] ? SITE_META[id].name : id);
+
   const $ = (s, r) => (r || document).querySelector(s);
   const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
   const pretty = (t) => (t || "").replace(/_/g, " ");
@@ -36,10 +49,80 @@
       activeTab = item.dataset.tab;
       document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
       $("#tab-" + activeTab).classList.remove("hidden");
-      if (activeTab === "diff") loadDiff();
+      if (activeTab === "diff" && activeSite !== "grfics-chem") loadDiff();
       if (activeTab === "alerts" || activeTab === "evidence") render();
     });
   });
+
+  // ---- site selector ----
+  const SITE_SHORT = { "thermal-pi": "⚡ Thermal", "grfics-chem": "⚗️ Chemical", "all": "🌐 All" };
+
+  function buildSiteTabs(list) {
+    const box = $("#siteTabs"); if (!box) return;
+    const ids = ["thermal-pi"];
+    (list || []).forEach(s => { if (s.site_id === "grfics-chem" && s.available) chemAvailable = true; });
+    if (chemAvailable) { ids.push("grfics-chem"); ids.push("all"); }
+    box.innerHTML = "";
+    ids.forEach(id => {
+      const b = el("button", "site-tab" + (id === activeSite ? " active" : ""), SITE_SHORT[id] || id);
+      b.dataset.site = id;
+      b.onclick = () => setSite(id);
+      box.appendChild(b);
+    });
+  }
+
+  function setSite(id) {
+    activeSite = id;
+    document.querySelectorAll("#siteTabs .site-tab").forEach(b => b.classList.toggle("active", b.dataset.site === id));
+    const t = $("#site-title"); if (t) t.textContent = siteLabel(id);
+    const showChem = id === "grfics-chem";
+    const pt = $("#plant-thermal"), pc = $("#plant-chem");
+    if (pt) pt.classList.toggle("hidden", showChem);
+    if (pc) pc.classList.toggle("hidden", !showChem);
+    const dt = $("#diff-thermal"), dc = $("#diff-chem-note");
+    if (dt) dt.classList.toggle("hidden", showChem);
+    if (dc) dc.classList.toggle("hidden", !showChem);
+    // lazy-load the 200 MB 3D scene only when the chemical site is first opened
+    if (showChem && !chemFrameLoaded) { const f = $("#chem-frame"); if (f) { f.src = "/viz/"; chemFrameLoaded = true; } }
+    const pdf = $("#btn-pdf"); if (pdf) pdf.href = "/api/evidence/report.pdf" + (id === "all" ? "" : "?site=" + id);
+    render();
+  }
+
+  fetch("/api/sites").then(r => r.json()).then(d => buildSiteTabs(d.sites)).catch(() => {});
+
+  // ---- chemical site: gauges + attacks ----
+  function setCG(vid, mid, val, unit, max, warn, crit) {
+    const v = $("#" + vid), m = $("#" + mid);
+    if (v) v.innerHTML = (val == null ? "—" : val.toFixed(1)) + ' <span class="cg-u">' + unit + "</span>";
+    if (m && val != null) {
+      m.style.width = Math.max(0, Math.min(100, (val / max) * 100)) + "%";
+      m.style.background = val >= crit ? "var(--crit)" : val >= warn ? "var(--med)" : "var(--ok, #37d67a)";
+    }
+  }
+  function pollChem() {
+    if (!chemAvailable) return;
+    fetch("/api/site-b/state").then(r => r.json()).then(s => {
+      const o = s.feed.outputs, st = s.feed.state;
+      setCG("cg-press", "cgm-press", o.pressure, "kPa", 4000, 2600, 3200);
+      setCG("cg-level", "cgm-level", o.liquid_level, "%", 120, 85, 100);
+      setCG("cg-f1", "cgm-f1", st.f1_valve_pos, "%", 100, 101, 101);
+      setCG("cg-purge", "cgm-purge", st.purge_valve_pos, "%", 100, 101, 101);
+      const esd = $("#cg-esd");
+      if (esd) {
+        if (st.e_stop) { esd.className = "pill bad"; esd.textContent = "Reactor: EMERGENCY SHUTDOWN"; }
+        else { esd.className = "pill ok"; esd.textContent = "Reactor: RUNNING"; }
+      }
+    }).catch(() => {});
+  }
+  document.querySelectorAll(".chem-atk[data-atk]").forEach(b => {
+    b.addEventListener("click", () => {
+      b.disabled = true;
+      jpost("/api/site-b/attack/" + b.dataset.atk).then(r => toast("Chemical: " + (r.note || r.attack || "attack fired")))
+        .finally(() => setTimeout(() => (b.disabled = false), 500));
+    });
+  });
+  const chemReset = $("#chem-reset"); if (chemReset) chemReset.addEventListener("click", () =>
+    jpost("/api/site-b/reset").then(() => toast("Chemical plant restored to baseline")));
 
   // topbar actions
   const lockBtn = $("#btn-lock"); if (lockBtn) lockBtn.addEventListener("click", () =>
@@ -104,6 +187,8 @@
     main.appendChild(el("div", "alert-type", e.type));
     main.appendChild(el("div", "alert-reason", (e.details && e.details.reason) || ""));
     const meta = el("div", "alert-meta");
+    const sid = eventSite(e);
+    meta.appendChild(el("span", "site-chip s-" + sid, (SITE_SHORT[sid] || sid)));
     if (e.mitre && e.mitre.technique_id) {
       const m = el("span", "mitre-tag", e.mitre.technique_id + " " + e.mitre.technique_name);
       meta.appendChild(m);
@@ -118,29 +203,30 @@
     return row;
   }
 
-  function sortedEvents() {
-    return events.slice().sort((a, b) =>
+  function sortedEvents(list) {
+    return (list || events).slice().sort((a, b) =>
       (SEV_RANK[b.severity] - SEV_RANK[a.severity]) || (b.seq - a.seq));
   }
 
   function render() {
-    const crit = events.filter(e => e.severity === "critical").length;
-    const badge = $("#alert-badge"); badge.textContent = events.length;
+    const vis = events.filter(siteVisible);
+    const crit = vis.filter(e => e.severity === "critical").length;
+    const badge = $("#alert-badge"); badge.textContent = vis.length;
     badge.style.background = crit ? "var(--crit)" : "var(--muted-2)";
 
     if (activeTab === "alerts") {
       const box = $("#alerts-table"); box.innerHTML = "";
-      sortedEvents().forEach(e => box.appendChild(alertRow(e, true)));
+      sortedEvents(vis).forEach(e => box.appendChild(alertRow(e, true)));
     }
     if (activeTab === "evidence") {
       const box = $("#evidence-table"); box.innerHTML = "";
-      events.slice().sort((a, b) => b.seq - a.seq).forEach(e => box.appendChild(alertRow(e, false)));
+      vis.slice().sort((a, b) => b.seq - a.seq).forEach(e => box.appendChild(alertRow(e, false)));
     }
     // overview recent
     const ov = $("#ov-alerts"); if (ov) {
       ov.innerHTML = "";
-      sortedEvents().slice(0, 6).forEach(e => ov.appendChild(alertRow(e, false)));
-      if (!events.length) ov.appendChild(el("div", "muted tiny", "No drift detected — plant nominal."));
+      sortedEvents(vis).slice(0, 6).forEach(e => ov.appendChild(alertRow(e, false)));
+      if (!vis.length) ov.appendChild(el("div", "muted tiny", "No drift detected — plant nominal."));
     }
     flagMimic();
   }
@@ -306,5 +392,6 @@
   pollEvents(); pollOverview(); pollPlant();
   setInterval(pollEvents, 1000);
   setInterval(pollOverview, 2000);
-  setInterval(() => { pollPlant(); if (activeTab === "diff") loadDiff(); }, 1500);
+  setInterval(() => { pollPlant(); if (activeTab === "diff" && activeSite !== "grfics-chem") loadDiff(); }, 1500);
+  setInterval(() => { if (activeSite === "grfics-chem") pollChem(); }, 700);
 })();

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GRFICS Chemical Reactor — 3D</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0f14; overflow: hidden; }
+    #unityContainer { width: 100vw; height: 100vh; }
+    #unityContainer canvas { width: 100% !important; height: 100% !important; display: block; }
+    #ov { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+          text-align: center; font-family: system-ui, Segoe UI, sans-serif; color: #9fb3c8; }
+    #bar { width: 260px; height: 6px; background: #1b2733; border-radius: 3px; margin: 12px auto 0; }
+    #fill { height: 100%; width: 0; background: #37d67a; border-radius: 3px; transition: width .2s; }
+  </style>
+</head>
+<body>
+  <div id="unityContainer"></div>
+  <div id="ov"><div id="msg">Loading chemical plant…</div><div id="bar"><div id="fill"></div></div></div>
+  <script src="Build/UnityLoader.js"></script>
+  <script>
+    function prog(inst, p) {
+      var f = document.getElementById("fill"); if (f) f.style.width = (p * 100) + "%";
+      if (p === 1) { var o = document.getElementById("ov"); if (o) o.style.display = "none"; }
+    }
+    var unityInstance = UnityLoader.instantiate("unityContainer", "Build/ChemicalPlant.json", { onProgress: prog });
+  </script>
+</body>
+</html>

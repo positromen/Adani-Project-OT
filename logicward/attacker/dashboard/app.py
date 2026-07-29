@@ -18,7 +18,10 @@ import traceback
 
 from flask import Flask, Response, jsonify, render_template, request
 
+from logicward import config
 from logicward.attacker.attacks import Attacker
+from logicward.sites.grfics.attacks import ATTACKS as CHEM_ATTACK_METHODS
+from logicward.sites.grfics.attacks import ChemAttacker
 
 # ---------------------------------------------------------------------------
 
@@ -88,6 +91,57 @@ ATTACK_CATALOGUE = [
     },
 ]
 
+# Site B — GRFICS chemical reactor (3D). Real FC05/FC06 writes to the chemical
+# PLC's Modbus server; each has a visible consequence on the Unity 3D scene and
+# trips LogicWard's chemical register-drift detector.
+CHEM_CATALOGUE = [
+    {
+        "id": "defeat-protection",
+        "name": "Defeat Protection",
+        "category": "Modbus",
+        "severity": "high",
+        "mitre": "T0836 — Modify Parameter",
+        "description": "Raise the reactor's high-pressure trip setpoint over Modbus so the safety interlock never fires. Protection is disarmed — the plant can now run into the danger zone unchecked.",
+        "icon": "🛡️",
+    },
+    {
+        "id": "valve-override",
+        "name": "Valve Override",
+        "category": "Modbus",
+        "severity": "high",
+        "mitre": "T0855 — Unauthorized Command",
+        "description": "Force both feed valves to 100% and slam the purge valve shut. Reactor pressure climbs toward the redline on the 3D scene.",
+        "icon": "🎚️",
+    },
+    {
+        "id": "overfill",
+        "name": "Tank Overfill",
+        "category": "Modbus",
+        "severity": "high",
+        "mitre": "T0855 — Unauthorized Command",
+        "description": "Shut the product valve and drive the feeds high. Liquid level rises until the reactor vessel overflows.",
+        "icon": "🌊",
+    },
+    {
+        "id": "estop-injection",
+        "name": "E-Stop Injection",
+        "category": "Modbus",
+        "severity": "critical",
+        "mitre": "T0855 — Unauthorized Command",
+        "description": "Force the emergency-shutdown coil. The plant slams to safe-state — a denial of control the operator never commanded.",
+        "icon": "🛑",
+    },
+    {
+        "id": "pump-kill",
+        "name": "Feed Pump Kill",
+        "category": "Modbus",
+        "severity": "high",
+        "mitre": "T0855 — Unauthorized Command",
+        "description": "Force feed pump 1 off over Modbus, disturbing the reactor feed.",
+        "icon": "⛔",
+    },
+]
+
 UTILITY_ACTIONS = [
     {
         "id": "clean-pi",
@@ -142,7 +196,8 @@ def _run_ssh_command(host: str, commands: list[str]) -> str:
 
 
 def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
-               program_port: int = 8081) -> Flask:
+               program_port: int = 8081, chem_host: str = "127.0.0.1",
+               chem_port: int | None = None) -> Flask:
     app = Flask(__name__,
                 template_folder=os.path.join(os.path.dirname(__file__), "templates"),
                 static_folder=os.path.join(os.path.dirname(__file__), "static"))
@@ -150,21 +205,32 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
 
     atk = Attacker(host, modbus_port=modbus_port,
                    program_base=f"http://{host}:{program_port}")
+    chem_port = chem_port or config.GRFICS_MODBUS_PORT
+    chem = ChemAttacker(host=chem_host, port=chem_port)
 
     @app.route("/")
     def index():
         return render_template("attacker.html",
                                attacks=ATTACK_CATALOGUE,
+                               chem_attacks=CHEM_CATALOGUE,
                                utilities=UTILITY_ACTIONS,
                                target_host=host,
                                modbus_port=modbus_port,
-                               program_port=program_port)
+                               program_port=program_port,
+                               chem_host=chem_host,
+                               chem_port=chem_port)
 
     @app.post("/api/attack")
     def run_attack():
         data = request.get_json(silent=True) or {}
         attack_id = data.get("id", "")
         try:
+            # -- Site B: chemical reactor (real Modbus writes to the 3D plant) --
+            if attack_id in CHEM_ATTACK_METHODS:
+                r = getattr(chem, CHEM_ATTACK_METHODS[attack_id])()
+                return jsonify({"status": "success" if r.get("ok") else "failed",
+                                "detail": r.get("note", attack_id)})
+
             if attack_id == "setpoint-drift":
                 ok = atk.setpoint_drift_modbus("Drum_Level_LL_SP", 40)
                 return jsonify({"status": "success" if ok else "failed",
@@ -255,12 +321,17 @@ def main() -> None:
     p.add_argument("--port", type=int, default=9090, help="Dashboard port")
     p.add_argument("--modbus-port", type=int, default=5020)
     p.add_argument("--program-port", type=int, default=8081)
+    p.add_argument("--chem-host", default="127.0.0.1",
+                   help="Chemical (GRFICS) Modbus host — where the SOC dashboard's Site B runs")
+    p.add_argument("--chem-port", type=int, default=config.GRFICS_MODBUS_PORT)
     args = p.parse_args()
 
-    app = create_app(args.host, args.modbus_port, args.program_port)
+    app = create_app(args.host, args.modbus_port, args.program_port,
+                     chem_host=args.chem_host, chem_port=args.chem_port)
     print(f"\n  [*] LogicWard ATTACKER CONSOLE")
-    print(f"  Target  : {args.host}  (Modbus :{args.modbus_port}, Program :{args.program_port})")
-    print(f"  Console : http://localhost:{args.port}/")
+    print(f"  Thermal (Pi) : {args.host}  (Modbus :{args.modbus_port}, Program :{args.program_port})")
+    print(f"  Chemical (3D): {args.chem_host}:{args.chem_port}")
+    print(f"  Console      : http://localhost:{args.port}/")
     print()
     app.run(host="0.0.0.0", port=args.port, threaded=True)
 
