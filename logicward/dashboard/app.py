@@ -90,11 +90,21 @@ class Dashboard:
         return self.signed
 
     def _restore_baseline_program(self) -> bool:
-        """Restore hook: re-download the approved program to the (embedded) plant."""
+        """Restore hook: re-download the approved program to the plant."""
+        l5x_str = self.signed["manifest"]["l5x"]
         live = getattr(self.plant, "live_path", None)
         if live is not None:
-            live.write_text(self.signed["manifest"]["l5x"], encoding="utf-8")
+            live.write_text(l5x_str, encoding="utf-8")
             return True
+        
+        prog_url = getattr(self.plant, "program_url", None)
+        if prog_url:
+            import requests
+            try:
+                requests.post(f"{prog_url}/download", json={"l5x": l5x_str}, timeout=5)
+                return True
+            except Exception:
+                pass
         return False
 
     # -- background drift loop --
@@ -234,6 +244,12 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     def api_evidence():
         sev = request.args.get("severity")
         return jsonify({"events": evidence_mod.query(dash.bus.snapshot(), severity=sev, limit=300)})
+
+    @app.post("/api/alerts/clear")
+    def api_alerts_clear():
+        dash.bus.clear()
+        dash.drift.reset()
+        return jsonify({"status": "cleared", "message": "All alerts have been cleared from memory and disk."})
 
     @app.get("/api/evidence/report.pdf")
     @role_required("soc_analyst")

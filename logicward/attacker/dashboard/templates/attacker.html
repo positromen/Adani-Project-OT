@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LogicWard — Red Team Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='attacker.css') }}">
+</head>
+<body>
+  <!-- Scanline overlay -->
+  <div class="scanlines"></div>
+
+  <!-- Header -->
+  <header class="top-bar">
+    <div class="top-bar__left">
+      <span class="logo-icon">⚔️</span>
+      <h1>LogicWard <span class="accent">RED TEAM</span></h1>
+    </div>
+    <div class="top-bar__right">
+      <div class="target-info">
+        <span class="label">TARGET</span>
+        <span class="value" id="targetHost">{{ target_host }}</span>
+      </div>
+      <div class="target-info">
+        <span class="label">MODBUS</span>
+        <span class="value">:{{ modbus_port }}</span>
+      </div>
+      <div class="target-info">
+        <span class="label">PROGRAM</span>
+        <span class="value">:{{ program_port }}</span>
+      </div>
+      <div class="status-dot" id="statusDot" title="Checking..."></div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Attack Cards Grid -->
+    <section class="section">
+      <h2 class="section-title"><span class="section-icon">💀</span> Attack Catalogue</h2>
+      <div class="card-grid" id="attackGrid">
+        {% for atk in attacks %}
+        <div class="attack-card" data-id="{{ atk.id }}" data-severity="{{ atk.severity }}">
+          <div class="card-header">
+            <span class="card-icon">{{ atk.icon }}</span>
+            <div class="card-meta">
+              <span class="card-category {{ atk.category | lower | replace(' ', '-') }}">{{ atk.category }}</span>
+              <span class="card-severity sev-{{ atk.severity }}">{{ atk.severity | upper }}</span>
+            </div>
+          </div>
+          <h3 class="card-title">{{ atk.name }}</h3>
+          <p class="card-mitre">{{ atk.mitre }}</p>
+          <p class="card-desc">{{ atk.description }}</p>
+          {% if atk.id == 'ddos' %}
+          <div class="card-slider" style="margin-top:15px; margin-bottom:15px;">
+             <input type="range" id="ddos-slider" min="1000" max="250000" step="1000" value="50000" style="width: 100%; accent-color: var(--color-critical);" oninput="document.getElementById('ddos-val').innerText = parseInt(this.value).toLocaleString()">
+             <div style="font-family:monospace; color:var(--text-dim); margin-top:8px; font-size: 0.9em;">Packets to send: <strong id="ddos-val" style="color:var(--text-bright)">50,000</strong></div>
+          </div>
+          {% endif %}
+          <div class="card-footer">
+            <button class="btn-attack" onclick="fireAttack('{{ atk.id }}', this)">
+              <span class="btn-label">EXECUTE</span>
+              <span class="btn-spinner"></span>
+            </button>
+            <span class="card-result"></span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Utilities -->
+    <section class="section">
+      <h2 class="section-title"><span class="section-icon">🛠️</span> Pi Utilities</h2>
+      <div class="util-grid">
+        {% for u in utilities %}
+        <div class="util-card" data-id="{{ u.id }}">
+          <span class="util-icon">{{ u.icon }}</span>
+          <div class="util-info">
+            <h4>{{ u.name }}</h4>
+            <p>{{ u.description }}</p>
+          </div>
+          <button class="btn-util" onclick="fireUtility('{{ u.id }}', this)">
+            <span class="btn-label">RUN</span>
+            <span class="btn-spinner"></span>
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Live Log -->
+    <section class="section">
+      <h2 class="section-title"><span class="section-icon">📟</span> Operation Log</h2>
+      <div class="log-container" id="logContainer">
+        <div class="log-line system">LogicWard Red Team Console initialized. Target: {{ target_host }}</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='attacker.js') }}"></script>
+</body>
+</html>
