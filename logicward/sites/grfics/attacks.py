@@ -77,9 +77,9 @@ class ChemAttacker:
 
 
 ATTACKS = {
-    "pressure-redline": "pressure_redline",
     "overfill": "overfill",
     "estop-injection": "estop_injection",
+    "pressure-redline": "pressure_redline",
 }
 
 

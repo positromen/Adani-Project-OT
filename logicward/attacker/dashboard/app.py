@@ -96,15 +96,6 @@ ATTACK_CATALOGUE = [
 # trips LogicWard's chemical register-drift detector.
 CHEM_CATALOGUE = [
     {
-        "id": "pressure-redline",
-        "name": "Pressure Redline (Combo)",
-        "category": "Modbus",
-        "severity": "critical",
-        "mitre": "T0836 — Modify Parameter",
-        "description": "First raises the reactor's high-pressure trip setpoint to defeat the safety interlock, then forces the feed valves open. Watch the pressure gauge fly off the chart!",
-        "icon": "💥",
-    },
-    {
         "id": "overfill",
         "name": "Tank Overfill",
         "category": "Modbus",
@@ -121,6 +112,15 @@ CHEM_CATALOGUE = [
         "mitre": "T0855 — Unauthorized Command",
         "description": "Force the emergency-shutdown coil. The plant slams to safe-state — a denial of control the operator never commanded.",
         "icon": "🛑",
+    },
+    {
+        "id": "pressure-redline",
+        "name": "Pressure Redline (Combo)",
+        "category": "Modbus",
+        "severity": "critical",
+        "mitre": "T0836 — Modify Parameter",
+        "description": "First raises the reactor's high-pressure trip setpoint to defeat the safety interlock, then forces the feed valves open. Watch the pressure gauge fly off the chart!",
+        "icon": "💥",
     },
 ]
 

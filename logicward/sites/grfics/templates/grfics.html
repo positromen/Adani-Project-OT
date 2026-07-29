@@ -48,17 +48,12 @@
       <div class="card">
         <h2>Attacks <span class="count">unauthenticated Modbus writes</span></h2>
         <div class="atk">
-          <button class="btn danger" data-atk="defeat-protection">1 · Defeat protection
-            <div class="hint">Raise pressure safety setpoint → trip disarmed</div></button>
-          <button class="btn danger" data-atk="valve-override">2 · Valve override
-            <div class="hint">Feeds 100%, purge shut → pressure redlines</div></button>
-          <button class="btn danger" data-atk="overfill">Overfill tank
+          <button class="btn danger" data-atk="overfill">Tank Overfill
             <div class="hint">Product shut, feeds high → level overflows</div></button>
           <button class="btn danger" data-atk="estop-injection">E-stop injection
             <div class="hint">Force emergency shutdown coil (denial)</div></button>
-          <button class="btn danger" data-atk="pump-kill">Feed pump kill
-            <div class="hint">Force feed pump 1 off</div></button>
-          <button class="btn" id="rundemo" style="margin-top:4px">▶ Run scripted demo (1 → 2)</button>
+          <button class="btn danger" data-atk="pressure-redline">Pressure Redline (Combo)
+            <div class="hint">Raise safety setpoint & force feeds → tank explodes</div></button>
         </div>
       </div>
 
@@ -70,5 +65,28 @@
   </div>
 
   <script src="{{ url_for('static', filename='grfics.js') }}"></script>
+  <script>
+    // -- LogicWard Auto-Reset Monitor (Parent Page) --
+    // We poll the backend generation counter from the parent frame.
+    // If it changes, we forcefully reload the 3D iframe from the outside
+    // to bypass the Unity WebGL "Game Over" crash!
+    let currentGen = null;
+    setInterval(async () => {
+      try {
+        const res = await fetch("/api/site-b/state");
+        const data = await res.json();
+        if (currentGen === null) {
+          currentGen = data.generation;
+        } else if (data.generation !== currentGen) {
+          console.log("Backend generation changed. Force reloading iframe...");
+          currentGen = data.generation;
+          const iframe = document.querySelector('iframe[title="GRFICS 3D"]');
+          if (iframe) {
+            iframe.src = iframe.src;
+          }
+        }
+      } catch (err) {}
+    }, 1500);
+  </script>
 </body>
 </html>
