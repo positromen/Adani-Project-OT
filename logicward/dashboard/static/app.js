@@ -110,7 +110,7 @@
     }
     meta.appendChild(el("span", null, "src: " + e.source));
     if (e.identity && e.identity.channel) meta.appendChild(el("span", null, "via: " + e.identity.channel));
-    meta.appendChild(el("span", null, (e.timestamp || "").slice(11, 19)));
+    const d = new Date(e.timestamp); meta.appendChild(el("span", null, isNaN(d) ? (e.timestamp || "").slice(11, 19) : d.toLocaleTimeString([], {hour12: false})));
     main.appendChild(meta);
     row.appendChild(main);
     row.appendChild(el("span", null, ""));
