@@ -1,8 +1,11 @@
 """Smoke suite for Site B — GRFICS chemical reactor (3D demo).
 
-Exercises the real pipeline: physics stability at rest, real Modbus attacks
-over the LogicWard raw-socket server, register-drift detection onto the shared
+Exercises the real pipeline: physics stability at rest, the 5 DISTINCT
+demo-ordered attacks over real Modbus, register-drift detection onto the shared
 bus (types + severity + MITRE + site tag), the Unity feed schema, and reset.
+Each attack is asserted against its OWN signature so no two collapse to the same
+behaviour (quality=composition, pump=level-down, overfill=level-up+trip,
+estop=instant-halt, redline=blast).
 
 Run:  python -m logicward.tests.smoke_grfics
 """
@@ -27,96 +30,110 @@ def check(desc: str, cond: bool) -> None:
         print(f"  FAIL: {desc}")
 
 
-def _press(site):
-    return site.ds.feed_json()["outputs"]["pressure"]
-
-
-def _drain(site):
-    # advance the detector so emitted events are up to date
-    site.detector.run_once()
-
-
 def main() -> int:
     site = SiteB(modbus_port=5041)
     time.sleep(0.5)
 
+    def feed():
+        return site.ds.feed_json()
+
     # -- 1. feed schema matches what the Unity build reads --
-    feed = site.ds.feed_json()
+    f = feed()
     for k in ("f1_flow", "purge_flow", "pressure", "liquid_level", "A_in_purge"):
-        check(f"feed.outputs has {k}", k in feed["outputs"])
+        check(f"feed.outputs has {k}", k in f["outputs"])
     for k in ("f1_valve_pos", "purge_valve_pos", "e_stop"):
-        check(f"feed.state has {k}", k in feed["state"])
+        check(f"feed.state has {k}", k in f["state"])
 
-    # -- 2. stable at rest: no drift, no trip over a couple of seconds --
-    p0 = _press(site)
-    time.sleep(2.0)
-    p1 = _press(site)
-    check("pressure stable at rest (~1800)", 1500 < p1 < 2100)
-    check("no false trip at rest", site.ds.feed_json()["state"]["e_stop"] == 0)
-    _drain(site)
-    evs, cur = site.bus.get_since(0)
-    check("no drift events at rest", len(evs) == 0)
-
-    # -- 3+4. pressure-redline (combo: defeat safety setpoint + force valves) =>
-    #         high setpoint_drift + register_change, pressure climbs past 3000 --
-    before = _press(site)
-    r = site.attacker.pressure_redline()
-    check("pressure-redline write ok", r["ok"])
-    time.sleep(0.3)
-    _drain(site)
-    evs, cur = site.bus.get_since(0)
-    sp = [e for e in evs if e["type"] == "cyber.setpoint_drift"]
-    rc = [e for e in evs if e["type"] == "cyber.register_change"]
-    check("setpoint_drift emitted", len(sp) == 1)
-    check("setpoint_drift is high severity", bool(sp) and sp[0]["severity"] == "high")
-    check("setpoint_drift tagged site", bool(sp) and sp[0]["details"].get("site") == SITE_ID)
-    check("setpoint_drift has MITRE ICS id", bool(sp) and sp[0]["mitre"].get("technique_id"))
-    check("valve register_change events emitted", len(rc) >= 3)
-    check("register_change tagged site", all(e["details"].get("site") == SITE_ID for e in rc))
-    check("safety setpoint defeated (raised well above normal)",
-          bool(sp) and (sp[0]["details"].get("current") or 0) > 3500)
-    # Main's fast physics drives a rapid excursion (level overflow / pressure
-    # climb) that ends in an emergency trip — the dramatic, visible consequence.
-    peak_p = peak_l = 0.0
-    tripped = False
-    deadline = time.time() + 8
-    while time.time() < deadline:
-        f = site.ds.feed_json()
-        peak_p = max(peak_p, f["outputs"]["pressure"])
-        peak_l = max(peak_l, f["outputs"]["liquid_level"])
-        if f["state"]["e_stop"]:
-            tripped = True
-            break
-        time.sleep(0.05)
-    check("attack forces a dangerous excursion (level or pressure)",
-          peak_l > 85 or peak_p > before + 150)
-    check("reactor driven to emergency shutdown", tripped)
-
-    # -- 5. estop-injection on a freshly reset plant => ESD coil forced True --
-    site.reset()
-    time.sleep(0.8)
-    _, cur = site.bus.get_since(0)                 # cursor after the clean baseline
-    site.attacker.estop_injection()
-    time.sleep(0.3)
+    # -- 2. stable at rest: no drift, no trip --
+    time.sleep(1.5)
+    o = feed()["outputs"]
+    check("pressure stable at rest", 1500 < o["pressure"] < 2100)
+    check("level stable at rest", 30 < o["liquid_level"] < 50)
+    check("no false trip at rest", feed()["state"]["e_stop"] == 0)
     site.detector.run_once()
-    new_evs, _ = site.bus.get_since(cur)
-    esd_ev = [e for e in new_evs if e["details"].get("coil") == "Reactor_ESD"]
-    check("ESD coil-force detected", len(esd_ev) >= 1)
-    check("ESD reflected in feed", site.ds.feed_json()["state"]["e_stop"] == 1)
+    check("no drift events at rest", len(site.bus.get_since(0)[0]) == 0)
 
-    # -- 6. reset restores baseline and clears detector memory --
+    def fire(name, secs):
+        """reset, capture baseline, fire attack, observe peaks over `secs`."""
+        site.reset()
+        time.sleep(0.8)
+        _, cur = site.bus.get_since(0)
+        base = feed()["outputs"]
+        getattr(site.attacker, name)()
+        pmax = amax = lmax = 0.0
+        pmin = lmin = 1e9
+        tripped = False
+        deadline = time.time() + secs
+        while time.time() < deadline:
+            ff = feed()
+            oo = ff["outputs"]
+            pmax = max(pmax, oo["pressure"]); pmin = min(pmin, oo["pressure"])
+            lmax = max(lmax, oo["liquid_level"]); lmin = min(lmin, oo["liquid_level"])
+            amax = max(amax, oo["A_in_purge"])
+            if ff["state"]["e_stop"]:
+                tripped = True
+            time.sleep(0.05)
+        site.detector.run_once()
+        evs = site.bus.get_since(cur)[0]
+        obs = dict(pmax=pmax, pmin=pmin, lmax=lmax, lmin=lmin, amax=amax,
+                   tripped=tripped, state=feed()["state"])
+        return base, obs, evs
+
+    def has(evs, t):
+        return any(e["type"] == t for e in evs)
+
+    def tagged(evs):
+        return bool(evs) and all(e["details"].get("site") == SITE_ID for e in evs)
+
+    # -- 3. quality-sabotage: composition swings, stealthy (no trip / level / pressure move) --
+    base, o, evs = fire("quality_sabotage", 4)
+    check("quality detected (register_change)", has(evs, "cyber.register_change"))
+    check("quality events tagged + MITRE", tagged(evs) and all(e["mitre"].get("technique_id") for e in evs))
+    check("quality swings COMPOSITION (colour)", o["amax"] > base["A_in_purge"] + 12)
+    check("quality is STEALTHY (level flat)", o["lmin"] > 30 and o["lmax"] < 55)
+    check("quality does NOT trip", not o["tripped"])
+    check("quality diverges the feed valves", o["state"]["f1_valve_pos"] > 60 and o["state"]["f2_valve_pos"] < 20)
+
+    # -- 4. pump-starve: level DRAINS, no trip (opposite of overfill) --
+    base, o, evs = fire("pump_starve", 6)
+    check("pump-starve detected (pump coil)", any(e["details"].get("coil") == "Feed_Pump_1" for e in evs))
+    check("pump-starve DRAINS the level", o["lmin"] < 20)
+    check("pump-starve does NOT trip", not o["tripped"])
+    check("pump-starve shuts feed-1 valve", o["state"]["f1_valve_pos"] < 5)
+
+    # -- 5. overfill: level RISES to overflow + trip --
+    base, o, evs = fire("overfill", 6)
+    check("overfill detected (register_change)", has(evs, "cyber.register_change"))
+    check("overfill RAISES level toward overflow", o["lmax"] > 85)
+    check("overfill trips the reactor", o["tripped"])
+
+    # -- 6. estop-injection: instant halt, no prior excursion (distinct from overfill) --
+    base, o, evs = fire("estop_injection", 3)
+    check("estop detected (ESD coil)", any(e["details"].get("coil") == "Reactor_ESD" for e in evs))
+    check("estop halts the reactor", o["tripped"])
+    check("estop has no level excursion", o["lmax"] < 55)
+
+    # -- 7. pressure-redline (BLAST): both safety setpoints defeated, pressure -> blast --
+    base, o, evs = fire("pressure_redline", 16)
+    sp = [e for e in evs if e["type"] == "cyber.setpoint_drift"]
+    check("redline defeats TWO safety setpoints", len(sp) == 2)
+    check("redline setpoint_drifts are high severity", bool(sp) and all(e["severity"] == "high" for e in sp))
+    check("redline emits register_change (valves/purge)", has(evs, "cyber.register_change"))
+    check("redline drives pressure to BLAST (>= 3900 kPa)", o["pmax"] >= 3900)
+
+    # -- 8. reset restores baseline + detection still works --
     site.reset()
     time.sleep(1.0)
-    check("reset restores pressure", 1500 < _press(site) < 2100)
-    check("reset clears ESD", site.ds.feed_json()["state"]["e_stop"] == 0)
+    o = feed()["outputs"]
+    check("reset restores pressure", 1500 < o["pressure"] < 2100)
+    check("reset restores level", 30 < o["liquid_level"] < 50)
+    check("reset clears ESD", feed()["state"]["e_stop"] == 0)
     site.detector.run_once()
-    _, cur3 = site.bus.get_since(0)
-    # a fresh attack after reset must still detect (dedup memory cleared)
-    site.attacker.pressure_redline()
+    _, cur = site.bus.get_since(0)
+    site.attacker.overfill()
     time.sleep(0.3)
     site.detector.run_once()
-    post = [e for e in site.bus.get_since(cur3)[0] if e["type"] == "cyber.setpoint_drift"]
-    check("detection works after reset", len(post) >= 1)
+    check("detection works after reset", len(site.bus.get_since(cur)[0]) >= 1)
 
     total = _passed + _failed
     print("=" * 52)
