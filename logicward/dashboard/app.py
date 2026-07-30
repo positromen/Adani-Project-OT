@@ -1,4 +1,5 @@
 """LogicWard SOC dashboard — Flask app (runs on the laptop).
+Modified by Komal & Antigravity (Adani Project RBAC Upgrades)
 
 Composes the whole laptop side: mounts the engine ingest/poll blueprint (so the
 Pi agent can POST and the UI can poll), runs the drift engine on a background
@@ -38,8 +39,9 @@ USERS = {
     "operator": {"password": "operator123", "role": "operator", "name": "Ops Console"},
     "engineer": {"password": "engineer123", "role": "engineer", "name": "Control Engineer"},
     "soc":      {"password": "soc123",      "role": "soc_analyst", "name": "SOC Analyst"},
+    "admin":    {"password": "admin123",    "role": "admin", "name": "System Administrator"},
 }
-ROLE_RANK = {"operator": 1, "engineer": 2, "soc_analyst": 3}
+ROLE_RANK = {"operator": 1, "engineer": 2, "soc_analyst": 3, "admin": 4}
 
 
 class Dashboard:

@@ -1,7 +1,8 @@
 /* LogicWard SOC dashboard — polling + rendering + role-gated actions */
+/* Modified by Komal & Antigravity (Adani Project RBAC Fixes) */
 (function () {
   "use strict";
-  const ROLE_RANK = { operator: 1, engineer: 2, soc_analyst: 3 };
+  const ROLE_RANK = { operator: 1, engineer: 2, soc_analyst: 3, admin: 4 };
   const role = document.body.dataset.role || "operator";
   const myRank = ROLE_RANK[role] || 0;
   const SEV_RANK = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
@@ -37,8 +38,9 @@
   }
 
   // role-gate action controls
-  document.querySelectorAll("[data-role-min]").forEach(e => {
-    if (myRank < ROLE_RANK[e.dataset.roleMin]) e.remove();
+  document.querySelectorAll("[data-roles]").forEach(e => {
+    const allowed = e.dataset.roles.split(",");
+    if (!allowed.includes(role) && role !== "admin") e.remove();
   });
 
   // tabs

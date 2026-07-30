@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Modified by Komal & Antigravity (Adani Project) -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -43,10 +44,10 @@
         <span class="chip med">MED <b id="c-med">0</b></span>
       </div>
       <div class="topbar-actions">
-        <button class="btn" data-role-min="engineer" id="btn-lock">Re-lock baseline</button>
-        <button class="btn" data-role-min="engineer" id="btn-restore">Restore baseline</button>
-        <button class="btn danger" data-role-min="soc_analyst" id="btn-clear-logs">Clear Alerts</button>
-        <a class="btn primary" data-role-min="soc_analyst" id="btn-pdf" href="/api/evidence/report.pdf">Export PDF</a>
+        <button class="btn" data-roles="engineer,admin" id="btn-lock">Re-lock baseline</button>
+        <button class="btn" data-roles="engineer,admin" id="btn-restore">Restore baseline</button>
+        <button class="btn danger" data-roles="operator,engineer,soc_analyst,admin" id="btn-clear-logs">Acknowledge All</button>
+        <a class="btn primary" data-roles="soc_analyst,admin" id="btn-pdf" href="/api/evidence/report.pdf">Export PDF</a>
       </div>
     </header>
 
