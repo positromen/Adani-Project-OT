@@ -179,6 +179,35 @@
           </div>
         </div>
       </div>
+      <div class="card" id="host-telemetry">
+        <div class="card-h">Controller host — live load
+          <span class="tlm-hint muted tiny">CPU / RAM / SoC temp · a Modbus flood (DDoS) spikes this</span>
+          <span class="tlm-host mono" id="tlm-host" style="margin-left:auto">—</span>
+        </div>
+        <div class="tlm-grid">
+          <div class="tlm-stat" id="tlm-cpu-box">
+            <div class="tlm-label">CPU</div>
+            <div class="tlm-val"><b id="tlm-cpu">—</b><span>%</span></div>
+            <div class="tlm-bar"><i id="tlm-cpu-bar"></i></div>
+          </div>
+          <div class="tlm-stat" id="tlm-mem-box">
+            <div class="tlm-label">RAM</div>
+            <div class="tlm-val"><b id="tlm-mem">—</b><span>%</span></div>
+            <div class="tlm-bar"><i id="tlm-mem-bar"></i></div>
+          </div>
+          <div class="tlm-stat" id="tlm-temp-box">
+            <div class="tlm-label">SoC TEMP</div>
+            <div class="tlm-val"><b id="tlm-temp">—</b><span>°C</span></div>
+            <div class="tlm-bar"><i id="tlm-temp-bar"></i></div>
+          </div>
+          <div class="tlm-spark">
+            <div class="tlm-label">CPU trend — last ~60 s <span class="tlm-src" id="tlm-src">—</span></div>
+            <svg id="tlm-cpu-spark" class="tlm-spark-svg" viewBox="0 0 100 30" preserveAspectRatio="none">
+              <polyline id="tlm-cpu-line" fill="none" points=""></polyline>
+            </svg>
+          </div>
+        </div>
+      </div>
       <div class="two-col">
         <div class="card"><div class="card-h">Trip &amp; alarm status</div><div id="plant-trips" class="trip-grid"></div></div>
         <div class="card"><div class="card-h">Setpoints (holding registers)</div><div id="plant-setpoints" class="value-grid"></div></div>

@@ -59,6 +59,10 @@ def main() -> int:
     res.set_sim(cpu=97); res.scan()
     spikes = [e for e in events if e["type"] == "resource.cpu_spike"]
     check(len(spikes) == 2, f"resource: spike fires, re-arms, fires again ({len(spikes)})")
+    res.set_sim(cpu=42, mem=55, temp=63.5)
+    s = res.sample()
+    check(s["cpu"] == 42 and s["mem"] == 55 and s["temp"] == 63.5,
+          "resource.sample() returns live cpu/mem/temp for the Live-Plant panel")
 
     arp = ArpWatch(emit, allowlist=["aa:bb:cc:00:00:01"])
     arp.observe([{"mac": "AA:BB:CC:00:00:01", "ip": "192.168.1.10"},

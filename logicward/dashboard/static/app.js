@@ -244,6 +244,38 @@
     fetch("/api/plant").then(r => r.json()).then(p => renderPlant(p)).catch(() => {});
   }
 
+  // ---- host telemetry (CPU / RAM / temp) — makes the DDoS impact visible ----
+  const TLM_MAX = 40;                 // ~60 s of history at the 1.5 s cadence
+  const tlmCpu = [];
+  function pollTelemetry() {
+    fetch("/api/telemetry").then(r => r.json()).then(t => renderTelemetry(t)).catch(() => {});
+  }
+  function tlmBand(v, warn, crit) { return v == null ? "" : v >= crit ? " crit" : v >= warn ? " warn" : ""; }
+  function renderTelemetry(t) {
+    const setStat = (id, val, warn, crit, scale) => {
+      const b = $("#tlm-" + id), bar = $("#tlm-" + id + "-bar"), box = $("#tlm-" + id + "-box");
+      if (b) b.textContent = (val == null ? "n/a" : val);
+      if (bar) bar.style.width = (val == null ? 0 : Math.max(0, Math.min(100, val * (scale || 1)))) + "%";
+      if (box) box.className = "tlm-stat" + tlmBand(val, warn, crit);
+    };
+    setStat("cpu", t.cpu, 70, 85, 1);
+    setStat("mem", t.mem, 80, 90, 1);
+    setStat("temp", t.temp, 70, 80, 100 / 90);      // bar scaled to a 0–90 °C range
+    const host = $("#tlm-host");
+    if (host) host.textContent = (t.host || "—") + (t.source === "pi" ? " · Pi" : "");
+    const src = $("#tlm-src");
+    if (src) { src.textContent = t.source === "pi" ? "from Pi agent" : "local psutil"; src.className = "tlm-src" + (t.source === "pi" ? " pi" : ""); }
+    if (t.cpu != null) { tlmCpu.push(t.cpu); if (tlmCpu.length > TLM_MAX) tlmCpu.shift(); }
+    const line = $("#tlm-cpu-line");
+    if (line && tlmCpu.length) {
+      const n = tlmCpu.length;
+      line.setAttribute("points", tlmCpu.map((v, i) =>
+        (n === 1 ? 0 : i / (n - 1) * 100).toFixed(1) + "," + (30 - v / 100 * 30).toFixed(2)).join(" "));
+      const last = tlmCpu[n - 1];
+      line.setAttribute("class", last >= 85 ? "crit" : last >= 70 ? "warn" : "");
+    }
+  }
+
   // ---- rendering ----
   function alertActions(e) {
     const wrap = el("div", "alert-actions");
@@ -533,9 +565,10 @@
   }
 
   // ---- loops ----
-  pollEvents(); pollOverview(); pollPlant();
+  pollEvents(); pollOverview(); pollPlant(); pollTelemetry();
   setInterval(pollEvents, 1000);
   setInterval(pollOverview, 2000);
   setInterval(() => { pollPlant(); if (activeTab === "diff" && activeSite !== "grfics-chem") loadDiff(); }, 1500);
+  setInterval(pollTelemetry, 1500);
   setInterval(() => { if (activeSite === "grfics-chem") pollChem(); }, 700);
 })();

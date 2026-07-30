@@ -51,6 +51,21 @@ class Agent:
             self.arp.scan(self.arp_cidr)
         except Exception:  # noqa: BLE001
             pass
+        self._push_telemetry()
+
+    def _push_telemetry(self) -> None:
+        """Best-effort: forward this host's live CPU/RAM/temp to the SOC dashboard
+        so the thermal Live-Plant panel shows the Pi's load (spikes under a flood)."""
+        try:
+            import socket
+
+            import requests
+            t = self.resource.sample()
+            t["host"] = socket.gethostname()
+            requests.post(config.TELEMETRY_URL, json=t, timeout=2,
+                          headers={"X-LogicWard-Token": config.INGEST_TOKEN})
+        except Exception:  # noqa: BLE001 - telemetry is non-critical
+            pass
 
     def _loop(self) -> None:
         while not self._stop.is_set():

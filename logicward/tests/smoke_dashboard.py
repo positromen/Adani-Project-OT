@@ -54,6 +54,20 @@ def main() -> int:
         plant = soc.get("/api/plant").get_json()
         check("Generator_MW" in plant["input_registers"], "live plant snapshot served")
 
+        # -- host telemetry (CPU/RAM/temp) — the Live Plant DDoS-impact panel --
+        from logicward import config as _cfg
+        tlm = soc.get("/api/telemetry").get_json()
+        check({"cpu", "mem", "temp"}.issubset(tlm.keys()), "telemetry serves cpu/mem/temp")
+        check(tlm.get("source") == "local", "telemetry falls back to local host sample")
+        pushed = app.test_client().post(
+            "/api/telemetry", json={"cpu": 96.5, "mem": 61.0, "temp": 74.3, "host": "pi-01"},
+            headers={"X-LogicWard-Token": _cfg.INGEST_TOKEN})
+        check(pushed.status_code == 200, "agent can push Pi telemetry (token-authed)")
+        tlm2 = soc.get("/api/telemetry").get_json()
+        check(tlm2.get("source") == "pi" and tlm2.get("cpu") == 96.5, "pushed Pi telemetry wins over local")
+        check(app.test_client().post("/api/telemetry", json={"cpu": 1}).status_code == 401,
+              "telemetry push without token -> 401")
+
         # induce a logic-inversion drift on the running program, then run one pass
         mutated = BASELINE_PATH.read_text(encoding="utf-8").replace(
             "LES(Drum_Level,Drum_Level_LL_SP)", "GRT(Drum_Level,Drum_Level_LL_SP)")

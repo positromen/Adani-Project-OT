@@ -35,8 +35,9 @@ class ResourceMonitor:
             except Exception:  # noqa: BLE001
                 pass
 
-    def set_sim(self, cpu: float | None = None, mem: float | None = None) -> None:
-        self._sim = {"cpu": cpu, "mem": mem}
+    def set_sim(self, cpu: float | None = None, mem: float | None = None,
+                temp: float | None = None) -> None:
+        self._sim = {"cpu": cpu, "mem": mem, "temp": temp}
 
     def _sample(self) -> tuple[float | None, float | None]:
         if self._sim is not None:
@@ -47,6 +48,31 @@ class ResourceMonitor:
             return psutil.cpu_percent(interval=None), psutil.virtual_memory().percent
         except Exception:  # noqa: BLE001
             return None, None
+
+    def _read_temp(self) -> float | None:
+        """SoC / CPU temperature in °C — the DDoS also heats the Pi. Pi-first, then psutil."""
+        if self._sim is not None:
+            return self._sim.get("temp")
+        try:  # Raspberry Pi (and most Linux SBCs)
+            with open("/sys/class/thermal/thermal_zone0/temp") as f:
+                return round(int(f.read().strip()) / 1000.0, 1)
+        except Exception:  # noqa: BLE001
+            pass
+        if psutil and hasattr(psutil, "sensors_temperatures"):
+            try:
+                for entries in (psutil.sensors_temperatures() or {}).values():
+                    if entries:
+                        return round(entries[0].current, 1)
+            except Exception:  # noqa: BLE001
+                pass
+        return None
+
+    def sample(self) -> dict:
+        """Current host telemetry for the live panel — CPU %, RAM %, temp °C (no event)."""
+        cpu, mem = self._sample()
+        return {"cpu": None if cpu is None else round(cpu, 1),
+                "mem": None if mem is None else round(mem, 1),
+                "temp": self._read_temp()}
 
     def scan(self) -> list[dict]:
         cpu, mem = self._sample()

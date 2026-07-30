@@ -311,6 +311,28 @@ b{font-weight:700}
 .trend-unit{font-size:11px;color:var(--muted);font-weight:400}
 .spark{display:block;width:100%;height:34px;margin-top:6px}
 
+/* host telemetry — CPU / RAM / SoC temp (DDoS impact) on the Live Plant tab */
+#host-telemetry .tlm-hint{font-weight:500}
+.tlm-host{font-size:11px;color:var(--muted-2)}
+.tlm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 2fr;gap:1px;background:var(--hair)}
+.tlm-stat{background:var(--surface);padding:12px 14px}
+.tlm-label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.tlm-val{margin-top:4px;font-variant-numeric:tabular-nums}
+.tlm-val b{font-size:24px;font-weight:800;color:var(--ink)}
+.tlm-val span{font-size:12px;color:var(--muted-2);margin-left:3px;font-weight:600}
+.tlm-bar{height:6px;border-radius:4px;background:var(--hair);margin-top:8px;overflow:hidden}
+.tlm-bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .5s ease,background .3s}
+.tlm-stat.warn .tlm-val b{color:var(--serious)} .tlm-stat.warn .tlm-bar i{background:var(--serious)}
+.tlm-stat.crit .tlm-val b{color:var(--crit)} .tlm-stat.crit .tlm-bar i{background:var(--crit)}
+.tlm-stat.crit{background:var(--crit-bg)}
+.tlm-spark{background:var(--surface);padding:12px 14px;min-width:0}
+.tlm-src{font-size:10px;color:var(--muted-2);font-weight:600;margin-left:6px}
+.tlm-src.pi{color:var(--good)}
+.tlm-spark-svg{display:block;width:100%;height:38px;margin-top:8px}
+.tlm-spark-svg polyline{stroke:var(--accent);stroke-width:1.4;vector-effect:non-scaling-stroke}
+.tlm-spark-svg polyline.warn{stroke:var(--serious)} .tlm-spark-svg polyline.crit{stroke:var(--crit)}
+@media(max-width:720px){.tlm-grid{grid-template-columns:repeat(3,1fr)}.tlm-spark{grid-column:1/-1}}
+
 /* attacker attribution — "by whom" chip on alerts */
 .who-chip{font-size:10px;font-weight:700;color:var(--crit);background:var(--crit-bg);padding:1px 7px;border-radius:20px;font-family:var(--mono)}
 

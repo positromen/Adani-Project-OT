@@ -24,6 +24,9 @@ INGEST_TOKEN = _env("TOKEN", "logicward-dev-token-change-me")
 # URL the Pi agent POSTs events to. On the Pi: LOGICWARD_INGEST_URL=http://<laptop-ip>:8080/api/ingest
 INGEST_URL = _env("INGEST_URL", f"http://127.0.0.1:{INGEST_PORT}/api/ingest")
 
+# URL the Pi agent POSTs live CPU/RAM/temp telemetry to (same host/token as ingest).
+TELEMETRY_URL = _env("TELEMETRY_URL", INGEST_URL.replace("/api/ingest", "/api/telemetry"))
+
 # ── Pi: PLC (Modbus) + program endpoints ──────────────────────────────────────
 PI_HOST = _env("PI_HOST", "127.0.0.1")
 MODBUS_PORT = int(_env("MODBUS_PORT", "5020"))          # 502 needs root; 5020 for dev

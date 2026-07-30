@@ -18,12 +18,14 @@ from __future__ import annotations
 import functools
 import os
 import threading
+import time
 
 from flask import (Flask, Response, jsonify, redirect, render_template, request,
                    session, url_for)
 
 from logicward import config
 from logicward.agent.sensors.fim_watch import BaselineFileMonitor
+from logicward.agent.sensors.resource import ResourceMonitor
 from logicward.dashboard import evidence as evidence_mod
 from logicward.engine import baseline as bl
 from logicward.engine import l5x, l5x_diff
@@ -134,6 +136,13 @@ class Dashboard:
         self.response = ResponseEngine(self.bus, restore_hook=self._restore_baseline_program)
         self.baseline_fim = BaselineFileMonitor(self.baseline_path, self.bus.emit)
 
+        # -- host telemetry (CPU / RAM / temp) — makes the DDoS impact visible --
+        # In embedded/single-machine runs we sample THIS host's psutil; on a real
+        # Pi the edge agent pushes the Pi's readings to POST /api/telemetry, which
+        # then win over the local sample. The monitor also edge-fires cpu_spike.
+        self._resmon = ResourceMonitor(self.bus.emit)
+        self._pushed_telemetry: dict | None = None
+
         # -- Site B: GRFICS chemical reactor (optional, shares THIS bus) --
         # A second monitored site: its own Modbus PLC + physics + register-drift
         # detector, all feeding the same event bus so both plants share one feed,
@@ -230,7 +239,23 @@ class Dashboard:
                 self.drift.run_once()
             except Exception:  # noqa: BLE001
                 pass
+            try:
+                self._resmon.scan()          # edge-fire cpu/mem spike on sustained load
+            except Exception:  # noqa: BLE001
+                pass
             self._stop.wait(config.POLL_INTERVAL_SEC)
+
+    def telemetry(self) -> dict:
+        """Live host telemetry for the thermal Live-Plant panel. Agent-pushed Pi
+        readings (fresh) win; otherwise sample this host locally (embedded/laptop)."""
+        t = self._pushed_telemetry
+        if t and (time.time() - t.get("_rx", 0) < 6):
+            return {"cpu": t.get("cpu"), "mem": t.get("mem"), "temp": t.get("temp"),
+                    "host": t.get("host", config.PI_HOST), "source": "pi"}
+        s = self._resmon.sample()
+        s["host"] = "localhost"
+        s["source"] = "local"
+        return s
 
     def stop(self) -> None:
         self._stop.set()
@@ -372,6 +397,26 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     @login_required
     def api_plant():
         return jsonify(dash.plant.named_snapshot())
+
+    @app.get("/api/telemetry")
+    @login_required
+    def api_telemetry():
+        return jsonify(dash.telemetry())
+
+    @app.post("/api/telemetry")
+    def api_telemetry_ingest():
+        # The Pi edge agent pushes its CPU/RAM/temp here (token-authed, same token
+        # as event ingest). Kept off the event bus — this is a live gauge, not
+        # evidence; sustained spikes still surface as resource.cpu_spike alerts.
+        tok = request.headers.get("X-LogicWard-Token") or request.args.get("token")
+        if tok != config.INGEST_TOKEN:
+            return jsonify({"error": "unauthorized"}), 401
+        body = request.get_json(silent=True) or {}
+        dash._pushed_telemetry = {
+            "cpu": body.get("cpu"), "mem": body.get("mem"), "temp": body.get("temp"),
+            "host": body.get("host", config.PI_HOST), "_rx": time.time(),
+        }
+        return jsonify({"status": "ok"})
 
     @app.get("/api/diff")
     @login_required
