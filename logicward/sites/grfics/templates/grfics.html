@@ -48,12 +48,16 @@
       <div class="card">
         <h2>Attacks <span class="count">unauthenticated Modbus writes</span></h2>
         <div class="atk">
-          <button class="btn danger" data-atk="overfill">Tank Overfill
-            <div class="hint">Product shut, feeds high → level overflows</div></button>
-          <button class="btn danger" data-atk="estop-injection">E-stop injection
-            <div class="hint">Force emergency shutdown coil (denial)</div></button>
-          <button class="btn danger" data-atk="pressure-redline">Pressure Redline (Combo)
-            <div class="hint">Raise safety setpoint & force feeds → tank explodes</div></button>
+          <button class="btn danger" data-atk="quality-sabotage">1 · 🧪 Quality Sabotage
+            <div class="hint">Skew feed ratio → composition/colour shifts (stealthy)</div></button>
+          <button class="btn danger" data-atk="pump-starve">2 · 🕳️ Feed Pump Trip
+            <div class="hint">Pump 1 off → reactor starved, level drains away</div></button>
+          <button class="btn danger" data-atk="overfill">3 · 🌊 Tank Overfill
+            <div class="hint">Product shut, feeds high → liquid level overflows + trip</div></button>
+          <button class="btn danger" data-atk="estop-injection">4 · 🛑 E-stop Injection
+            <div class="hint">Force emergency shutdown → plant halts, valves safe-state</div></button>
+          <button class="btn danger" data-atk="pressure-redline">5 · 🔥 Pressure Redline — BLAST
+            <div class="hint">Defeat all trips + feeds open + purge shut → reactor blasts</div></button>
         </div>
       </div>
 

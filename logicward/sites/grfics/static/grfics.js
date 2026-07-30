@@ -58,14 +58,17 @@
       jpost("/api/site-b/attack/" + b.dataset.atk).finally(() => setTimeout(() => (b.disabled = false), 400));
     });
   });
-  $("rundemo").addEventListener("click", async () => {
-    $("rundemo").disabled = true;
-    await jpost("/api/site-b/attack/defeat-protection");
-    await new Promise((r) => setTimeout(r, 1500));
-    await jpost("/api/site-b/attack/valve-override");
-    setTimeout(() => ($("rundemo").disabled = false), 800);
+  const rundemo = $("rundemo");
+  if (rundemo) rundemo.addEventListener("click", async () => {
+    rundemo.disabled = true;
+    for (const a of ["quality-sabotage", "pressure-redline", "overfill"]) {
+      await jpost("/api/site-b/attack/" + a);
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    setTimeout(() => (rundemo.disabled = false), 800);
   });
-  $("reset").addEventListener("click", () => {
+  const resetBtn = $("reset");
+  if (resetBtn) resetBtn.addEventListener("click", () => {
     jpost("/api/site-b/reset").then(() => {
       feed.innerHTML = '<div class="empty">Baseline restored — plant matches approved config.</div>';
       total = 0; $("evcount").textContent = "0 events";

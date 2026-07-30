@@ -111,8 +111,13 @@ class ChemicalDataStore:
     def tick(self, dt: float) -> None:
         with self.lock:
             esd = self._coil("Reactor_ESD")
-            f1 = 0.0 if esd else self._cmd("Feed1_Valve_Cmd")
-            f2 = 0.0 if esd else self._cmd("Feed2_Valve_Cmd")
+            # A feed valve only delivers flow when its pump is running (and no ESD),
+            # so a pump-trip attack visibly STARVES the reactor — the level drains —
+            # a signature distinct from every valve/overfill attack.
+            p1 = self._coil("Feed_Pump_1")
+            p2 = self._coil("Feed_Pump_2")
+            f1 = 0.0 if (esd or not p1) else self._cmd("Feed1_Valve_Cmd")
+            f2 = 0.0 if (esd or not p2) else self._cmd("Feed2_Valve_Cmd")
             purge = self._cmd("Purge_Valve_Cmd")
             product = self._cmd("Product_Valve_Cmd")
 
@@ -135,9 +140,12 @@ class ChemicalDataStore:
             self.pressure += dp * dt * 1.5
             self.pressure = max(0.0, min(4200.0, self.pressure))
 
-            tgtA = 30.0 + f1 * 0.3
-            self.A += (tgtA - self.A) * dt * 0.05
-            self.B += ((100.0 - self.A) * 0.4 - self.B) * dt * 0.05
+            # Composition tracks the feed ratio and moves FAST + HARD, so a
+            # feed-ratio (quality-sabotage) attack visibly recolours the reactor
+            # liquid — the Unity scene tints the fluid from the A/B/C_in_purge keys.
+            tgtA = max(5.0, min(95.0, 15.0 + f1 * 0.8))
+            self.A += (tgtA - self.A) * dt * 0.8
+            self.B += ((100.0 - self.A) * 0.4 - self.B) * dt * 0.8
             self.C = max(0.0, 100.0 - self.A - self.B)
 
             self._flows = {"Feed1_Flow": f1_flow, "Feed2_Flow": f2_flow,
