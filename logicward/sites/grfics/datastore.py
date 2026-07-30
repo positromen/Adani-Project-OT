@@ -218,6 +218,7 @@ class ChemicalDataStore:
                 if pts.BY_TAG[tag].area == "IR":
                     return pts.eng(self.input_registers[pts.BY_TAG[tag].address], tag)
                 return pts.eng(self.holding_registers[pts.BY_TAG[tag].address], tag)
+            esd = self._coil("Reactor_ESD")
             return {
                 "process": "simpleTE",
                 "outputs": {
@@ -233,10 +234,10 @@ class ChemicalDataStore:
                     "cost": round(e("Reactor_Pressure") * 0.01 + e("Liquid_Level") * 0.05, 3),
                 },
                 "state": {
-                    "f1_valve_pos": round(e("Feed1_Valve_Cmd"), 2),
-                    "f2_valve_pos": round(e("Feed2_Valve_Cmd"), 2),
-                    "purge_valve_pos": round(e("Purge_Valve_Cmd"), 2),
-                    "product_valve_pos": round(e("Product_Valve_Cmd"), 2),
-                    "e_stop": 1 if self._coil("Reactor_ESD") else 0,
+                    "f1_valve_pos": 0.0 if esd else round(e("Feed1_Valve_Cmd"), 2),
+                    "f2_valve_pos": 0.0 if esd else round(e("Feed2_Valve_Cmd"), 2),
+                    "purge_valve_pos": 100.0 if esd else round(e("Purge_Valve_Cmd"), 2),
+                    "product_valve_pos": 0.0 if esd else round(e("Product_Valve_Cmd"), 2),
+                    "e_stop": 1 if esd else 0,
                 },
             }
