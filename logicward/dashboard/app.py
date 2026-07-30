@@ -183,21 +183,6 @@ class Dashboard:
                                  who_source=self._who)
         return self.signed
 
-    def upload_baseline(self, program_xml: bytes | None = None,
-                        registers: dict | None = None) -> dict:
-        """Set the approved baseline from an UPLOADED known-good config (L5X/XML program
-        and/or JSON register mapping), re-sign it, and recompute drift against it."""
-        prog = program_xml if program_xml is not None else self.plant.program_source()
-        regs = registers if registers is not None else self.plant.register_source()
-        self.signed = bl.capture(prog, regs)
-        bl.save(self.signed, self.baseline_path)
-        self.baseline_prog = l5x.parse(self.signed["manifest"]["l5x"].encode())
-        self.drift = DriftEngine(self.bus, self.signed,
-                                 program_source=self.plant.program_source,
-                                 register_source=self.plant.register_source,
-                                 who_source=self._who)
-        return self.signed
-
     def _who(self, tag: str | None, channel: str) -> str | None:
         """Attribute a detected change to the attacker's source IP (or None)."""
         if tag and hasattr(self.plant, "writer_for"):
@@ -464,37 +449,6 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
                           {"reason": f"Baseline re-locked by {session['user']}", "performed": True},
                           identity={"who": session["user"], "channel": "operator"})
         return jsonify({"status": "locked", "hash": dash.signed["manifest"]["structural_hash"]})
-
-    @app.post("/api/baseline/upload")
-    @require_cap("baseline")
-    def api_baseline_upload():
-        """Upload a known-good baseline: .L5X/.xml (program) or .json (register map)."""
-        import json as _json
-        f = request.files.get("file")
-        if not f or not f.filename:
-            return jsonify({"error": "no file uploaded"}), 400
-        name = f.filename.lower()
-        data = f.read()
-        try:
-            if name.endswith((".l5x", ".xml")):
-                l5x.parse(data)                          # validate it parses
-                dash.upload_baseline(program_xml=data)
-                kind = "L5X program"
-            elif name.endswith(".json"):
-                regs = _json.loads(data.decode("utf-8"))
-                if not isinstance(regs, dict) or "holding" not in regs:
-                    return jsonify({"error": "JSON must be {\"holding\":{tag:val},\"coils\":{tag:bool}}"}), 400
-                dash.upload_baseline(registers=regs)
-                kind = "register map"
-            else:
-                return jsonify({"error": "unsupported file (use .L5X / .xml / .json)"}), 400
-        except Exception as exc:  # noqa: BLE001
-            return jsonify({"error": f"invalid baseline: {exc}"}), 400
-        dash.bus.emit_new("cyber.baseline_relocked", "dashboard",
-                          {"reason": f"Approved baseline uploaded ({kind}) by {session['user']}",
-                           "performed": True}, identity={"who": session["user"], "channel": "operator"})
-        return jsonify({"status": "uploaded", "kind": kind,
-                        "hash": dash.signed["manifest"]["structural_hash"]})
 
     @app.post("/api/response/ack")
     @require_cap("ack")

@@ -60,7 +60,7 @@ b{font-weight:700}
 
 /* ── brand ─────────────────────────────────────────────────────────────────── */
 .brand-logo{height:40px;width:auto;max-width:48px;flex:none;display:block;object-fit:contain}
-.login-logo{display:block;width:100%;max-width:236px;height:auto;margin:0 auto}
+.login-logo{display:block;width:100%;max-width:166px;height:auto;margin:0 auto}
 .brand-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);
   display:inline-flex;align-items:center;justify-content:center;flex:none}
 .brand-mark span{width:12px;height:12px;border-radius:3px;background:#fff}
@@ -72,10 +72,10 @@ b{font-weight:700}
 .login-body{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;
   background:var(--page) url("img/vigilo-bg.png") center/cover no-repeat fixed}
 .login-body::after{content:"";position:fixed;inset:0;background:var(--page);opacity:.6;pointer-events:none;z-index:0}
-.login-card{position:relative;z-index:1;background:var(--surface);width:372px;border:1px solid var(--border);border-radius:16px;padding:28px;
+.login-card{position:relative;z-index:1;background:var(--surface);width:min(760px,94vw);border:1px solid var(--border);border-radius:16px;padding:24px 26px;
   box-shadow:var(--shadow-lg)}
-.login-brand{display:flex;justify-content:center;margin-bottom:20px}
-.login-form{display:flex;flex-direction:column;gap:12px}
+.login-brand{display:flex;justify-content:center;margin-bottom:12px}
+.login-form{display:flex;flex-direction:column;gap:11px;max-width:400px;width:100%;margin:0 auto}
 .login-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:600}
 .login-form input{padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:14px;
   font-family:var(--sans);background:var(--surface);color:var(--ink)}
@@ -85,18 +85,21 @@ b{font-weight:700}
 .login-form button:hover{background:var(--accent-ink)}
 .login-error{background:var(--crit-bg);color:var(--crit);border:1px solid var(--crit-line);padding:8px 10px;border-radius:8px;font-size:12px;font-weight:600}
 .login-hint{margin-top:16px;text-align:center;font-size:11px;color:var(--muted-2)}
-.login-accounts{margin-top:18px;border-top:1px solid var(--hair);padding-top:14px}
-.login-accounts-head{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+.login-accounts{margin-top:16px;border-top:1px solid var(--hair);padding-top:14px}
+.login-accounts-head{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
 .login-accounts-head span{font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted-2)}
-.cred-row{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;cursor:pointer;
-  background:var(--sunken);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:7px;
+.cred-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:10px}
+@media(max-width:720px){.cred-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.cred-grid{grid-template-columns:1fr}}
+.cred-row{display:flex;flex-direction:column;gap:2px;text-align:left;cursor:pointer;
+  background:var(--sunken);border:1px solid var(--border);border-radius:9px;padding:9px 11px;
   font-family:var(--sans);transition:border-color .12s,box-shadow .12s,background .12s}
 .cred-row:hover{border-color:var(--accent);background:var(--surface)}
 .cred-row.sel{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 2px var(--accent-line)}
-.cred-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.cred-role{font-size:13px;font-weight:700;color:var(--ink)}
-.cred-id{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
-.cred-note{font-size:10.5px;color:var(--muted-2);line-height:1.35}
+.cred-top{display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+.cred-role{font-size:12px;font-weight:700;color:var(--ink);line-height:1.25}
+.cred-id{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.cred-note{font-size:10px;color:var(--muted-2);line-height:1.35;margin-top:2px}
 
 /* ── app shell ─────────────────────────────────────────────────────────────── */
 .app{display:flex;min-height:100vh}
@@ -148,6 +151,12 @@ html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 .theme-toggle{width:34px;height:34px;flex:none;border:1px solid var(--border);background:var(--surface);border-radius:8px;
   cursor:pointer;color:var(--muted);font-size:15px;display:inline-flex;align-items:center;justify-content:center}
 .theme-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.btn.sm{padding:5px 10px;font-size:11.5px}
+
+/* per-role quick-action bar (capability-gated) */
+.role-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 22px;background:var(--surface);border-bottom:1px solid var(--border)}
+.role-bar-label{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.ro-note{font-size:11.5px;color:var(--muted);font-style:italic}
 
 .panel{padding:22px;display:flex;flex-direction:column;gap:16px}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -392,10 +401,6 @@ html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 .tlm-spark-svg polyline{stroke:var(--accent);stroke-width:1.4;vector-effect:non-scaling-stroke;fill:none}
 .tlm-spark-svg polyline.warn{stroke:var(--serious)} .tlm-spark-svg polyline.crit{stroke:var(--crit)}
 @media(max-width:720px){.tlm-grid{grid-template-columns:repeat(3,1fr)}.tlm-spark{grid-column:1/-1}}
-
-/* ── baseline upload ───────────────────────────────────────────────────────── */
-.bl-upload{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 18px}
-.bl-upload input[type=file]{font-size:12px;color:var(--ink-2)}
 
 /* ── multi-site: selector, chips, chemical panel ───────────────────────────── */
 .site-tabs{display:flex;gap:3px;background:var(--sunken);border:1px solid var(--border);border-radius:8px;padding:3px}

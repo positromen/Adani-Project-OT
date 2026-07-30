@@ -8,6 +8,17 @@
   const hasCap = (c) => caps.includes(c);
   const SEV_RANK = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
 
+  // per-role view — which tabs a role sees + its default landing (least-privilege UX)
+  const ROLE_VIEWS = {
+    operator:         { tabs: ["plant", "alerts"], home: "plant" },
+    control_engineer: { tabs: ["overview", "plant", "diff", "alerts"], home: "diff" },
+    network_engineer: { tabs: ["overview", "alerts", "plant"], home: "alerts" },
+    soc_analyst:      { tabs: ["overview", "plant", "diff", "alerts", "evidence"], home: "overview" },
+    vendor:           { tabs: ["plant", "diff"], home: "plant" },
+    ciso:             { tabs: ["overview", "alerts", "evidence", "roles"], home: "overview" },
+  };
+  const ALL_TABS = ["overview", "plant", "diff", "alerts", "roles", "evidence"];
+
   let cursor = 0;
   const events = [];
   const seen = new Set();
@@ -115,7 +126,7 @@
     // lazy-load the 200 MB 3D scene only when the chemical site is first opened
     if (showChem && !chemFrameLoaded) { const f = $("#chem-frame"); if (f) { f.src = "/viz/"; chemFrameLoaded = true; } }
     const pdfHref = "/api/evidence/report.pdf" + (id === "all" ? "" : "?site=" + id);
-    ["#btn-pdf", "#btn-pdf-2"].forEach(sel => { const p = $(sel); if (p) p.href = pdfHref; });
+    ["#btn-pdf", "#btn-pdf-2", "#ra-pdf"].forEach(sel => { const p = $(sel); if (p) p.href = pdfHref; });
     render();
   }
 
@@ -180,22 +191,32 @@
   const viewAllBtn = $("#ov-viewall");
   if (viewAllBtn) viewAllBtn.addEventListener("click", () => { const n = document.querySelector('.nav-item[data-tab="alerts"]'); if (n) n.click(); });
 
-  // baseline upload (L5X / XML / JSON)
-  const blBtn = $("#bl-upload-btn");
-  if (blBtn) blBtn.addEventListener("click", () => {
-    const fileEl = $("#bl-file"), msg = $("#bl-upload-msg");
-    const f = fileEl && fileEl.files[0];
-    if (!f) { if (msg) msg.textContent = "choose a .L5X / .xml / .json file first"; return; }
-    const fd = new FormData(); fd.append("file", f);
-    if (msg) msg.textContent = "uploading…";
-    fetch("/api/baseline/upload", { method: "POST", body: fd }).then(r => r.json()).then(d => {
-      if (d.error) { if (msg) msg.textContent = "✗ " + d.error; toast("Baseline upload rejected"); }
-      else {
-        if (msg) msg.textContent = "✓ baseline set (" + d.kind + ") · " + (d.hash || "").slice(7, 19);
-        toast("Approved baseline updated"); if (activeSite !== "grfics-chem") loadDiff();
-      }
-    }).catch(() => { if (msg) msg.textContent = "✗ upload error"; });
+  // ---- role quick-action bar (each button is capability-gated in the template) ----
+  const gotoAlerts = () => { const n = document.querySelector('.nav-item[data-tab="alerts"]'); if (n) n.click(); };
+  const raAck = $("#ra-ack"); if (raAck) raAck.addEventListener("click", () =>
+    jpost("/api/alerts/clear").then(() => { toast("All alerts acknowledged"); setTimeout(() => window.location.reload(), 500); }));
+  const raLock = $("#ra-lock"); if (raLock) raLock.addEventListener("click", () =>
+    jpost("/api/baseline/lock").then(r => toast("Baseline re-locked · " + (r.hash || "").slice(7, 19))));
+  const raRestore = $("#ra-restore"); if (raRestore) raRestore.addEventListener("click", () =>
+    jpost("/api/response/restore").then(() => toast("Approved baseline restored")));
+  const raQuar = $("#ra-quar"); if (raQuar) raQuar.addEventListener("click", () => {
+    const rogue = events.filter(e => e.type === "physical.rogue_device").sort((a, b) => b.seq - a.seq)[0];
+    if (rogue) jpost("/api/response/quarantine", { mac: rogue.details.mac, ip: rogue.details.ip, ref: rogue.event_id }).then(() => toast("Rogue device quarantined"));
+    else { toast("No rogue device active — opening alerts"); gotoAlerts(); }
   });
+  const raSafe = $("#ra-safe"); if (raSafe) raSafe.addEventListener("click", () => {
+    const sc = events.filter(e => e.details && e.details.safety_critical && (e.type || "").startsWith("cyber.")).sort((a, b) => b.seq - a.seq)[0];
+    if (sc) jpost("/api/response/safe_state", { rung_id: sc.details.rung_id, ref: sc.event_id }).then(() => toast("Safe-state recommended"));
+    else { toast("No safety-critical drift active — opening alerts"); gotoAlerts(); }
+  });
+  const raComp = $("#ra-comp"); if (raComp) raComp.addEventListener("click", () => {
+    const o = lastOverview || {};
+    toast("Compliance posture · risk " + (o.risk_score != null ? o.risk_score : "—") + " " + (o.risk_band || "") + " · baseline " + (o.baseline_integrity || "—"));
+  });
+  // vendor (no caps): hide the "Your actions" label, show the read-only notice
+  const raLabel = $("#ra-label"), roNote = $("#ro-note");
+  if (raLabel) raLabel.style.display = caps.length ? "" : "none";
+  if (roNote) roNote.style.display = caps.length ? "none" : "";
 
   // ---- polling ----
   function pollEvents() {
@@ -242,6 +263,15 @@
     const t = $("#view-title"), s = $("#view-sub");
     if (t) t.textContent = m[0];
     if (s) s.textContent = m[1];
+  }
+  // least-privilege UX: show only this role's tabs and land it on its home tab
+  function applyRoleView() {
+    const view = ROLE_VIEWS[role] || { tabs: ALL_TABS, home: "overview" };
+    document.querySelectorAll(".nav-item").forEach(n => {
+      n.style.display = view.tabs.includes(n.dataset.tab) ? "" : "none";
+    });
+    const homeNav = document.querySelector('.nav-item[data-tab="' + view.home + '"]');
+    if (homeNav) homeNav.click(); else setView(activeTab);
   }
   function updateThreatHealth() {
     const c = (lastOverview && lastOverview.severity_counts) || {};
@@ -855,7 +885,7 @@
   }
 
   // ---- loops ----
-  setView(activeTab);
+  applyRoleView();
   pollEvents(); pollOverview(); pollPlant(); pollTelemetry();
   setInterval(pollEvents, 1000);
   setInterval(pollOverview, 2000);

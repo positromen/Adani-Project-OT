@@ -57,6 +57,18 @@
       </div>
     </header>
 
+    <div class="role-bar">
+      <span class="role-bar-label" id="ra-label">Your actions</span>
+      <button class="btn sm" data-cap="ack_all" id="ra-ack">Acknowledge all</button>
+      <button class="btn sm" data-cap="baseline" id="ra-lock">Re-lock baseline</button>
+      <button class="btn sm" data-cap="baseline" id="ra-restore">Restore baseline</button>
+      <button class="btn sm" data-cap="network_response" id="ra-quar">Quarantine rogue</button>
+      <button class="btn sm" data-cap="safe_state" id="ra-safe">Recommend safe-state</button>
+      <a class="btn sm" data-cap="evidence" id="ra-pdf" href="/api/evidence/report.pdf">Export forensic PDF</a>
+      <button class="btn sm primary" data-cap="compliance" id="ra-comp">Compliance posture</button>
+      <span class="ro-note" id="ro-note">Read-only session · all actions are monitored</span>
+    </div>
+
     <!-- Overview -->
     <section id="tab-overview" class="panel">
       <div class="kpi-row" id="kpi-row"></div>
@@ -246,14 +258,6 @@
 
     <!-- Program Diff -->
     <section id="tab-diff" class="panel hidden">
-      <div class="card" data-cap="baseline" id="baseline-upload">
-        <div class="card-h">Upload approved baseline <span class="muted tiny" style="margin-left:auto">.L5X / .xml program &nbsp;·&nbsp; .json register map</span></div>
-        <div class="bl-upload">
-          <input type="file" id="bl-file" accept=".l5x,.xml,.json" />
-          <button class="btn primary" id="bl-upload-btn">Set as approved baseline</button>
-          <span class="muted tiny" id="bl-upload-msg"></span>
-        </div>
-      </div>
       <div class="card" id="diff-thermal">
         <div class="card-h">
           Baseline vs running program
