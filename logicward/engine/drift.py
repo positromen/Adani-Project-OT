@@ -24,6 +24,7 @@ from typing import Callable
 
 from logicward.engine import baseline as baseline_mod
 from logicward.engine import l5x
+from logicward.plant import rung_to_register as r2r
 
 # Coils the plant itself drives every scan (its own setpoint protection) — a
 # change here is legitimate process behaviour, not an attack, so exclude them
@@ -85,12 +86,33 @@ class DriftEngine:
         if key in self._seen:
             return None
         self._seen.add(key)
+        if "command" not in details:
+            cmd = self._command(details, channel)
+            if cmd:
+                details = {**details, "command": cmd}
         who = "unknown"
         if self.who_source:
             tag = details.get("tag") or details.get("coil")
             who = self.who_source(tag, channel) or "unknown"
         return self.bus.emit_new(etype, self.source, details,
                                  identity={"who": who, "channel": channel})
+
+    def _command(self, details: dict, channel: str) -> str | None:
+        """Reconstruct the literal op that produced this drift (the 'how')."""
+        if channel == "program-download":
+            return "POST /program/download  (unauthenticated L5X program download)"
+        tag = details.get("tag")
+        if tag:
+            p = r2r.BY_TAG.get(tag)
+            if p:
+                return f"FC06 write_holding @{p.address}={details.get('current')}  ({tag})"
+        coil = details.get("coil")
+        if coil:
+            p = r2r.BY_TAG.get(coil)
+            if p:
+                on = bool(details.get("current"))
+                return f"FC05 write_coil @{p.address}={'FF00' if on else '0000'}  ({coil} -> {'ON' if on else 'OFF'})"
+        return None
 
     # -- structural (L5X) --
     def _structural(self) -> list[dict | None]:

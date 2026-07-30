@@ -263,6 +263,13 @@
     const main = el("div", "alert-main");
     main.appendChild(el("div", "alert-type", e.type));
     main.appendChild(el("div", "alert-reason", (e.details && e.details.reason) || ""));
+    const cmd = e.details && e.details.command;
+    if (cmd) {
+      const c = el("div", "alert-cmd");
+      c.appendChild(el("span", "cmd-label", "HOW"));
+      c.appendChild(el("code", null, cmd));
+      main.appendChild(c);
+    }
     const meta = el("div", "alert-meta");
     const sid = eventSite(e);
     meta.appendChild(el("span", "site-chip s-" + sid, (SITE_SHORT[sid] || sid)));

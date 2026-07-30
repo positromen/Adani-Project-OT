@@ -407,6 +407,19 @@ body {
 .log-line.error   { color: var(--orange); }
 .log-line.utility { color: var(--cyan); }
 
+/* Exact wire command that was sent — the literal Modbus / program op. */
+.log-line.command { color: var(--cyan); padding-left: 18px; }
+.log-line.command .cmd-arrow { color: var(--red-primary); margin-right: 6px; }
+.log-line.command code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  color: #cfe9ff;
+  background: #00e5ff10;
+  border: 1px solid #00e5ff22;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
 /* ── Animations ───────────────────────────────────────────────────────── */
 @keyframes spin {
   to { transform: rotate(360deg); }

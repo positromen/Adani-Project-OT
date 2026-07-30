@@ -135,6 +135,9 @@ b{font-weight:700}
 .alert-main{min-width:0}
 .alert-type{font-weight:700;font-size:12px}
 .alert-reason{color:var(--ink-2);font-size:12.5px;margin-top:1px}
+.alert-cmd{display:flex;align-items:center;gap:7px;margin-top:4px}
+.alert-cmd .cmd-label{font-size:9.5px;font-weight:700;letter-spacing:.06em;color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:3px;padding:1px 5px}
+.alert-cmd code{font-family:var(--mono);font-size:11.5px;color:#0f172a;background:#f1f5f9;border:1px solid var(--border);border-radius:4px;padding:1px 7px;white-space:nowrap;overflow-x:auto;max-width:100%}
 .alert-meta{font-size:11px;color:var(--muted-2);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap}
 .mitre-tag{background:#eef4fc;color:#1d4ed8;border-radius:4px;padding:0 5px;font-weight:600;font-family:var(--mono)}
 .alert-actions{display:flex;gap:6px}

@@ -29,6 +29,7 @@ class ChemAttacker:
         self.host = host
         self.port = port
         self.unit = unit
+        self._cmds: list[str] = []   # exact Modbus commands of the last attack
 
     def _modbus(self, pdu: bytes) -> bytes | None:
         try:
@@ -45,11 +46,20 @@ class ChemAttacker:
     def write_register(self, tag: str, eng_value: float) -> bool:
         p = pts.BY_TAG[tag]
         raw = max(0, min(65535, pts.raw(eng_value, tag)))
+        self._cmds.append(f"FC06 write_holding @{p.address}={raw}  ({tag} -> {eng_value:g} {p.unit})")
         return self._modbus(struct.pack(">BHH", 0x06, p.address, raw)) is not None
 
     def write_coil(self, tag: str, on: bool) -> bool:
         p = pts.BY_TAG[tag]
+        self._cmds.append(f"FC05 write_coil @{p.address}={'FF00' if on else '0000'}  ({tag} -> {'ON' if on else 'OFF'})")
         return self._modbus(struct.pack(">BHH", 0x05, p.address, 0xFF00 if on else 0x0000)) is not None
+
+    def fire(self, name: str) -> dict:
+        """Run attack `name`, returning its result plus the exact Modbus commands sent."""
+        self._cmds = []
+        r = getattr(self, ATTACKS[name])()
+        r["commands"] = list(self._cmds)
+        return r
 
     # -- named attacks (each drives a DISTINCT live signature on the SOC gauges) --
     def pressure_redline(self) -> dict:

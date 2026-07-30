@@ -15,6 +15,23 @@ function log(msg, cls = "system") {
   c.scrollTop = c.scrollHeight;
 }
 
+function esc(s) {
+  return String(s).replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+}
+
+/* Log the exact wire commands an attack sent (the literal Modbus / program ops). */
+function logCommands(cmds) {
+  if (!Array.isArray(cmds)) return;
+  for (const cmd of cmds) {
+    const c = document.getElementById("logContainer");
+    const d = document.createElement("div");
+    d.className = "log-line command";
+    d.innerHTML = `<span class="timestamp">[${ts()}]</span> <span class="cmd-arrow">&raquo;</span> <code>${esc(cmd)}</code>`;
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
+  }
+}
+
 /* ── Fire an attack ───────────────────────────────────────────────────── */
 async function fireAttack(id, btn) {
   const card = btn.closest(".attack-card");
@@ -48,12 +65,14 @@ async function fireAttack(id, btn) {
       result.textContent = "✓ " + (data.detail || "OK");
       result.className = "card-result ok";
       log(`✓ ${id}: ${data.detail || "success"}`, "success");
+      logCommands(data.commands);
     } else {
       card.classList.remove("firing");
       card.classList.add("failed");
       result.textContent = "✗ " + (data.detail || "failed");
       result.className = "card-result fail";
       log(`✗ ${id}: ${data.detail || "failed"}`, "error");
+      logCommands(data.commands);
     }
   } catch (err) {
     card.classList.remove("firing");

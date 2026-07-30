@@ -73,10 +73,9 @@ def make_grfics_blueprint(site, name: str = "grfics") -> Blueprint:
 
     @bp.post("/api/site-b/attack/<attack>")
     def attack(attack):
-        mname = CHEM_ATTACKS.get(attack)
-        if not mname:
+        if attack not in CHEM_ATTACKS:
             return jsonify({"error": f"unknown attack {attack}"}), 404
-        return jsonify(getattr(site.attacker, mname)())
+        return jsonify(site.attacker.fire(attack))
 
     @bp.post("/api/site-b/reset")
     def reset():

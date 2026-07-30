@@ -90,6 +90,8 @@ def main() -> int:
     check("quality detected (register_change)", has(evs, "cyber.register_change"))
     check("attack attributed to source IP (not 'unknown')",
           bool(evs) and all(e["identity"]["who"] not in (None, "unknown") for e in evs))
+    check("alert surfaces the literal Modbus command (details.command)",
+          bool(evs) and all(e["details"].get("command", "").startswith("FC06") for e in evs))
     check("quality events tagged + MITRE", tagged(evs) and all(e["mitre"].get("technique_id") for e in evs))
     check("quality swings COMPOSITION (colour)", o["amax"] > base["A_in_purge"] + 12)
     check("quality is STEALTHY (level flat)", o["lmin"] > 30 and o["lmax"] < 55)
@@ -122,6 +124,12 @@ def main() -> int:
     check("redline setpoint_drifts are high severity", bool(sp) and all(e["severity"] == "high" for e in sp))
     check("redline emits register_change (valves/purge)", has(evs, "cyber.register_change"))
     check("redline drives pressure to BLAST (>= 3900 kPa)", o["pmax"] >= 3900)
+
+    # -- 7b. attacker.fire() returns the exact Modbus commands (drives console log) --
+    site.reset(); time.sleep(0.6)
+    r = site.attacker.fire("estop-injection")
+    check("attacker.fire returns the exact commands sent",
+          bool(r.get("commands")) and r["commands"][0].startswith("FC05 write_coil"))
 
     # -- 8. reset restores baseline + detection still works --
     site.reset()

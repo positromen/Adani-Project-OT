@@ -57,20 +57,24 @@ class ChemicalDriftDetector:
             b = base_hold.get(tag)
             if b is None or cur == b:
                 continue
+            p = pts.BY_TAG[tag]
+            command = f"FC06 write_holding @{p.address}={cur}  ({tag} -> {pts.eng(cur, tag):g} {p.unit})"
             if tag in pts.SAFETY_SETPOINTS:
                 out.append(self._emit("cyber.setpoint_drift", {
                     "tag": tag, "baseline": pts.eng(b, tag), "current": pts.eng(cur, tag),
-                    "unit": pts.BY_TAG[tag].unit, "register": True, "safety_critical": True,
+                    "unit": p.unit, "register": True, "safety_critical": True,
+                    "command": command,
                     "reason": (f"Safety setpoint {tag} changed "
-                               f"{pts.eng(b, tag)} -> {pts.eng(cur, tag)} {pts.BY_TAG[tag].unit} "
+                               f"{pts.eng(b, tag)} -> {pts.eng(cur, tag)} {p.unit} "
                                f"over Modbus — protection weakened"),
                 }, "modbus-write"))
             else:
                 out.append(self._emit("cyber.register_change", {
                     "tag": tag, "baseline": pts.eng(b, tag), "current": pts.eng(cur, tag),
-                    "unit": pts.BY_TAG[tag].unit,
+                    "unit": p.unit,
+                    "command": command,
                     "reason": (f"Valve command {tag} changed "
-                               f"{pts.eng(b, tag)} -> {pts.eng(cur, tag)} {pts.BY_TAG[tag].unit} "
+                               f"{pts.eng(b, tag)} -> {pts.eng(cur, tag)} {p.unit} "
                                f"over Modbus"),
                 }, "modbus-write"))
 
@@ -80,9 +84,11 @@ class ChemicalDriftDetector:
             b = base_coils.get(tag)
             if b is None or bool(cur) == bool(b):
                 continue
+            cp = pts.BY_TAG[tag]
             out.append(self._emit("cyber.register_change", {
                 "coil": tag, "baseline": bool(b), "current": bool(cur),
                 "safety_critical": tag == "Reactor_ESD",
+                "command": f"FC05 write_coil @{cp.address}={'FF00' if cur else '0000'}  ({tag} -> {'ON' if cur else 'OFF'})",
                 "reason": f"Control coil {tag} forced {bool(b)} -> {bool(cur)} over Modbus",
             }, "modbus-write"))
 

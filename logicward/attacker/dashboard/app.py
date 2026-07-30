@@ -20,6 +20,7 @@ from flask import Flask, Response, jsonify, render_template, request
 
 from logicward import config
 from logicward.attacker.attacks import Attacker
+from logicward.plant import rung_to_register as r2r
 from logicward.sites.grfics.attacks import ATTACKS as CHEM_ATTACK_METHODS
 from logicward.sites.grfics.attacks import ChemAttacker
 
@@ -235,30 +236,37 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
         try:
             # -- Site B: chemical reactor (real Modbus writes to the 3D plant) --
             if attack_id in CHEM_ATTACK_METHODS:
-                r = getattr(chem, CHEM_ATTACK_METHODS[attack_id])()
+                r = chem.fire(attack_id)
                 return jsonify({"status": "success" if r.get("ok") else "failed",
-                                "detail": r.get("note", attack_id)})
+                                "detail": r.get("note", attack_id),
+                                "commands": r.get("commands", [])})
 
             if attack_id == "setpoint-drift":
+                addr = r2r.BY_TAG["Drum_Level_LL_SP"].address
                 ok = atk.setpoint_drift_modbus("Drum_Level_LL_SP", 40)
                 return jsonify({"status": "success" if ok else "failed",
-                                "detail": "Drum_Level_LL_SP → 40 mm"})
+                                "detail": "Drum_Level_LL_SP → 40 mm",
+                                "commands": [f"FC06 write_holding @{addr}=40  (Drum_Level_LL_SP -> 40 mm)"]})
 
             elif attack_id in ("logic-inversion", "condition-stripping",
                                "coil-hijack", "rung-injection"):
                 result = atk.program_mutation(attack_id)
-                return jsonify({"status": "success", "detail": json.dumps(result)})
+                return jsonify({"status": "success", "detail": json.dumps(result),
+                                "commands": [f"POST {atk.program_base}/program/download  (L5X {attack_id} mutation)"]})
 
             elif attack_id == "force-coil":
+                addr = r2r.BY_TAG["Fuel_Valve_Open"].address
                 ok = atk.force_coil("Fuel_Valve_Open", False)
                 return jsonify({"status": "success" if ok else "failed",
-                                "detail": "Fuel_Valve_Open → OFF"})
+                                "detail": "Fuel_Valve_Open → OFF",
+                                "commands": [f"FC05 write_coil @{addr}=0000  (Fuel_Valve_Open -> OFF)"]})
 
             elif attack_id == "ddos":
                 count = int(data.get("count", 50000))
                 rate = atk.ddos(count)
                 return jsonify({"status": "success",
-                                "detail": f"{count:,} req flood complete — {rate:.0f} req/s"})
+                                "detail": f"{count:,} req flood complete — {rate:.0f} req/s",
+                                "commands": [f"FC03 read_holding @0..5  x{count} flood  ({rate:.0f} req/s)"]})
 
             else:
                 return jsonify({"status": "error", "detail": f"Unknown attack: {attack_id}"}), 400

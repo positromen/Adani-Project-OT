@@ -84,10 +84,17 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
               Paragraph(f"Total events: {len(events)}", sub),
               Paragraph("Event timeline (most recent first)", h2)]
 
+    def _xesc(s: str) -> str:
+        return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     header = ["Time (UTC)", "Sev", "Type", "By whom", "MITRE", "Detail"]
     data = [header]
     for e in query(events, limit=120):
         m = e.get("mitre", {})
+        det = e.get("details", {})
+        detail = _xesc(str(det.get("reason", ""))[:90])
+        if det.get("command"):
+            detail += f"<br/><font face='Courier' size='6'>{_xesc(det['command'])}</font>"
         data.append([
             Paragraph(e.get("timestamp", "")[:19].replace("T", " "), cell),
             Paragraph(e.get("severity", ""), cell),
@@ -95,7 +102,7 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
             Paragraph((lambda w: w if w and w != "unknown" else e.get("source", ""))(
                 (e.get("identity") or {}).get("who")), cell),
             Paragraph(f"{m.get('technique_id', '')}", cell),
-            Paragraph(str(e.get("details", {}).get("reason", ""))[:90], cell),
+            Paragraph(detail, cell),
         ])
     tbl = Table(data, colWidths=[24 * mm, 12 * mm, 33 * mm, 22 * mm, 14 * mm, 63 * mm], repeatRows=1)
     style = [("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
