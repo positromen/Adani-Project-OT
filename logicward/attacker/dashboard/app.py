@@ -94,33 +94,53 @@ ATTACK_CATALOGUE = [
 # Site B — GRFICS chemical reactor (3D). Real FC05/FC06 writes to the chemical
 # PLC's Modbus server; each has a visible consequence on the Unity 3D scene and
 # trips LogicWard's chemical register-drift detector.
+# Ordered as a DEMO SEQUENCE — present and explain one at a time, escalating from
+# a stealthy quality attack up to the catastrophic blast, which is saved for last.
 CHEM_CATALOGUE = [
     {
-        "id": "overfill",
-        "name": "Tank Overfill",
+        "id": "quality-sabotage",
+        "name": "1 · Quality Sabotage",
         "category": "Modbus",
         "severity": "high",
         "mitre": "T0855 — Unauthorized Command",
-        "description": "Shut the product valve and drive the feeds high. Liquid level rises until the reactor vessel overflows.",
+        "description": "STEALTH OPENER. Skew the feed ratio while keeping total inflow constant — level and pressure barely move, so no process alarm fires, but the composition swings and the reactor liquid recolours (ruined batch). Point: LogicWard still catches the silent register drift. Watch the feed-1 / feed-2 gauges diverge.",
+        "icon": "🧪",
+    },
+    {
+        "id": "pump-starve",
+        "name": "2 · Feed Pump Trip",
+        "category": "Modbus",
+        "severity": "high",
+        "mitre": "T0855 — Unauthorized Command",
+        "description": "Trip feed pump 1 and shut its valve — the reactor is STARVED: the liquid level drains away and pressure falls. The opposite of an overfill. Watch the level gauge empty and feed-1 → 0.",
+        "icon": "🕳️",
+    },
+    {
+        "id": "overfill",
+        "name": "3 · Tank Overfill",
+        "category": "Modbus",
+        "severity": "high",
+        "mitre": "T0855 — Unauthorized Command",
+        "description": "Shut the product outlet and drive both feeds high — the LIQUID LEVEL climbs until the vessel overflows and the plant's own level trip fires. Watch the level gauge rise and the reactor trip.",
         "icon": "🌊",
     },
     {
         "id": "estop-injection",
-        "name": "E-Stop Injection",
+        "name": "4 · E-Stop Injection",
         "category": "Modbus",
         "severity": "critical",
         "mitre": "T0855 — Unauthorized Command",
-        "description": "Force the emergency-shutdown coil. The plant slams to safe-state — a denial of control the operator never commanded.",
+        "description": "Force the emergency-shutdown coil — the plant HALTS instantly, a denial of control the operator never commanded. Every valve gauge slams to safe-state and the ESD status goes red.",
         "icon": "🛑",
     },
     {
         "id": "pressure-redline",
-        "name": "Pressure Redline (Combo)",
+        "name": "5 · Pressure Redline — BLAST (finale)",
         "category": "Modbus",
         "severity": "critical",
         "mitre": "T0836 — Modify Parameter",
-        "description": "First raises the reactor's high-pressure trip setpoint to defeat the safety interlock, then forces the feed valves open. Watch the pressure gauge fly off the chart!",
-        "icon": "💥",
+        "description": "THE FINALE. Defeat BOTH safety trips, force the feeds wide open and shut the purge. Nothing relieves and nothing trips, so pressure rockets to the ceiling and the reactor BLASTS in the 3D scene. Save this for last. Watch the pressure gauge climb into the red — then the explosion.",
+        "icon": "🔥",
     },
 ]
 
