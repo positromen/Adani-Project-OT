@@ -237,6 +237,11 @@ html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 .dtbl-row.acked{opacity:.5}
 .atbl .dtbl-head,.atbl .dtbl-row{grid-template-columns:88px 74px 148px minmax(220px,1fr) 176px 132px;min-width:900px}
 .evtbl .dtbl-head,.evtbl .dtbl-row{grid-template-columns:56px 84px 160px minmax(220px,1fr) 150px;min-width:700px}
+.chdtbl .dtbl-head,.chdtbl .dtbl-row{grid-template-columns:minmax(150px,1.4fr) 96px 1fr 1fr 96px;min-width:640px}
+.chem-base{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.chem-live{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink)}
+.chem-live.drift{color:var(--crit)}
+.dtbl-row.chem-drift{background:var(--crit-bg)}
 .dtbl-empty{padding:34px 18px;text-align:center;color:var(--muted-2);font-size:12.5px}
 .cell-time{font-family:var(--mono);font-size:11px;color:var(--muted-2)}
 .cell-sub{font-size:10.5px;color:var(--muted-2);margin-top:3px}
@@ -274,6 +279,17 @@ html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 .ld-v.critical,.ld-v.crit{color:var(--crit)} .ld-v.high{color:var(--serious)} .ld-v.medium{color:var(--warn)} .ld-v.low{color:var(--good)}
 .ld-v.mistake{color:var(--warn)} .ld-v.internal{color:#7c3aed} .ld-v.external{color:var(--crit)}
 .log-json{font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--ink-2);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;overflow:auto;max-height:300px;white-space:pre;margin:0}
+
+/* attack-origin category chip + filter (external / internal / mistake) */
+.category-chip{display:inline-block;margin-top:4px;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:20px;border:1px solid transparent}
+.category-chip.external{background:var(--crit-bg);color:var(--crit);border-color:var(--crit-line)}
+.category-chip.internal{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}
+.category-chip.mistake{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-line)}
+html[data-theme="dark"] .category-chip.internal{background:#221a3a;color:#c4b5fd;border-color:#4c1d95}
+.cat-filter{display:inline-flex;gap:3px;background:var(--sunken);border:1px solid var(--border);border-radius:8px;padding:3px}
+.cat-filter button{border:0;background:transparent;font-family:var(--sans);font-size:11px;font-weight:600;color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer}
+.cat-filter button:hover{color:var(--ink)}
+.cat-filter button.active{background:var(--surface);color:var(--accent-ink);box-shadow:var(--shadow)}
 
 /* ── Vigilo topbar: view title, threat banner, health, pill site-tabs ──────── */
 .topbar-head{min-width:0;flex:0 1 auto;overflow:hidden;display:flex;flex-direction:column;gap:2px}

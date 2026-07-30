@@ -87,7 +87,7 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
     def _xesc(s: str) -> str:
         return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-    header = ["Time (UTC)", "Sev", "Type", "By whom", "MITRE", "Detail"]
+    header = ["Time (UTC)", "Sev", "Type", "By whom", "MITRE", "Origin", "Detail"]
     data = [header]
     for e in query(events, limit=120):
         m = e.get("mitre", {})
@@ -102,9 +102,10 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
             Paragraph((lambda w: w if w and w != "unknown" else e.get("source", ""))(
                 (e.get("identity") or {}).get("who")), cell),
             Paragraph(f"{m.get('technique_id', '')}", cell),
+            Paragraph((e.get("category") or "").upper(), cell),
             Paragraph(detail, cell),
         ])
-    tbl = Table(data, colWidths=[24 * mm, 12 * mm, 33 * mm, 22 * mm, 14 * mm, 63 * mm], repeatRows=1)
+    tbl = Table(data, colWidths=[24 * mm, 12 * mm, 31 * mm, 20 * mm, 13 * mm, 16 * mm, 52 * mm], repeatRows=1)
     style = [("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
              ("FONTSIZE", (0, 0), (-1, 0), 8), ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#DBE0E8")),
              ("VALIGN", (0, 0), (-1, -1), "TOP"), ("ROWBACKGROUNDS", (0, 1), (-1, -1),

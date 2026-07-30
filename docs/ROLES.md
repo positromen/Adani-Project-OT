@@ -35,6 +35,18 @@ landing page, and its own quick-action buttons (least privilege = least visibili
 - **Client (UX):** `logicward/dashboard/static/app.js` — `ROLE_VIEWS` picks each role's tabs +
   landing; every `data-cap="…"` control is removed for roles that lack the capability.
 
+## Baseline change lifecycle — who accepts a new baseline?
+1. An **approved** logic change is made in the vendor's engineering tool (Studio 5000 / TIA Portal) under
+   Management-of-Change and downloaded to the PLC.
+2. Vigilo sees the live program no longer matches the signed baseline → **raises a drift alert**
+   (attributed with who / when / what).
+3. An authorized owner must then **accept the new state as the new signed baseline** — the **"Re-lock
+   baseline"** action, gated to the **`baseline` capability = C&I / Control Engineer** (the program owner),
+   with **CISO** cross-role oversight. Re-locking re-signs (HMAC-SHA256) and clears the drift.
+4. **The failure mode = a `mistake`:** if the approver *rubber-stamps* a **drifted / unreviewed** program as
+   the new baseline, they have effectively blessed an unauthorized change. This is the "mistake" attack
+   category — a change-management error, not a network intrusion.
+
 ## Design note (secure by design)
 Least privilege is applied to **visibility**, not only actions: an Operator never sees the
 forensic/evidence surface, a Vendor gets a read-only, monitored session with no action buttons,

@@ -26,6 +26,8 @@
   let paused = false;
   const acked = new Set();
   const expanded = new Set();   // event_ids whose Wazuh-style log detail is expanded
+  let catFilter = "all";        // Alerts category filter: all | external | internal | mistake
+  const CAT_LABEL = { external: "EXTERNAL", internal: "INTERNAL", mistake: "MISTAKE" };
 
   // ---- multi-site ----
   let activeSite = "thermal-pi";          // "thermal-pi" | "grfics-chem" | "all"
@@ -82,7 +84,7 @@
       setView(activeTab);
       document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
       $("#tab-" + activeTab).classList.remove("hidden");
-      if (activeTab === "diff" && activeSite !== "grfics-chem") loadDiff();
+      if (activeTab === "diff") { if (activeSite === "grfics-chem") loadChemDiff(); else loadDiff(); }
       if (activeTab === "alerts" || activeTab === "evidence") render();
       if (activeTab === "overview") renderOverviewCards();
     });
@@ -124,6 +126,7 @@
     const dt = $("#diff-thermal"), dc = $("#diff-chem-note");
     if (dt) dt.classList.toggle("hidden", showChem);
     if (dc) dc.classList.toggle("hidden", !showChem);
+    if (activeTab === "diff") { if (showChem) loadChemDiff(); else loadDiff(); }
     // lazy-load the 200 MB 3D scene only when the chemical site is first opened
     if (showChem && !chemFrameLoaded) { const f = $("#chem-frame"); if (f) { f.src = "/viz/"; chemFrameLoaded = true; } }
     const pdfHref = "/api/evidence/report.pdf" + (id === "all" ? "" : "?site=" + id);
@@ -191,6 +194,12 @@
   });
   const viewAllBtn = $("#ov-viewall");
   if (viewAllBtn) viewAllBtn.addEventListener("click", () => { const n = document.querySelector('.nav-item[data-tab="alerts"]'); if (n) n.click(); });
+  // alerts category filter (all / external / internal / mistake)
+  document.querySelectorAll("#cat-filter button").forEach(b => b.addEventListener("click", () => {
+    catFilter = b.dataset.cat;
+    document.querySelectorAll("#cat-filter button").forEach(x => x.classList.toggle("active", x === b));
+    render();
+  }));
 
   // ---- role quick-action bar (each button is capability-gated in the template) ----
   const gotoAlerts = () => { const n = document.querySelector('.nav-item[data-tab="alerts"]'); if (n) n.click(); };
@@ -664,6 +673,7 @@
     const pl = el("div");
     pl.appendChild(el("div", "plane-type", e.type));
     pl.appendChild(el("div", "cell-sub", SITE_NAME_SHORT[sid] || siteLabel(sid)));
+    if (e.category) pl.appendChild(el("span", "category-chip " + e.category, CAT_LABEL[e.category] || e.category));
     row.appendChild(pl);
     const det = el("div");
     det.appendChild(el("div", "det-title", (e.details && e.details.reason) || pretty(e.type)));
@@ -704,12 +714,17 @@
 
     if (activeTab === "alerts") {
       const box = $("#alerts-table"); box.innerHTML = "";
-      const list = sortedEvents(vis);
+      const list = sortedEvents(vis).filter(e => catFilter === "all" || e.category === catFilter);
       list.forEach(e => box.appendChild(alertsTableRow(e)));
-      if (!list.length) box.appendChild(el("div", "dtbl-empty", "No drift. Live program and registers match the signed baseline on both sites."));
+      if (!list.length) box.appendChild(el("div", "dtbl-empty",
+        vis.length ? ("No " + catFilter + "-category alerts.") : "No drift. Live program and registers match the signed baseline on both sites."));
       const sum = $("#alerts-summary");
-      if (sum) { const open = vis.filter(e => !acked.has(e.event_id)).length;
-        sum.textContent = vis.length ? (open + " open · " + crit + " critical") : "no alerts"; }
+      if (sum) {
+        const byCat = (c) => vis.filter(e => e.category === c).length;
+        sum.textContent = vis.length
+          ? (vis.length + " open · " + crit + " critical · " + byCat("external") + " ext / " + byCat("internal") + " int / " + byCat("mistake") + " mistake")
+          : "no alerts";
+      }
     }
     if (activeTab === "evidence") {
       const box = $("#evidence-table"); box.innerHTML = "";
@@ -937,12 +952,36 @@
     return c;
   }
 
+  function loadChemDiff() {
+    fetch("/api/site-b/diff").then(r => r.json()).then(d => {
+      const sum = $("#chem-diff-summary");
+      if (sum) sum.textContent = d.changed ? (d.changed + " register(s) drifted") : "all registers match the signed baseline";
+      const body = $("#chem-diff-body"); if (!body) return;
+      body.innerHTML = "";
+      const fmtv = (v) => (v === true ? "ON" : v === false ? "OFF" : v == null ? "—" : fmt(v));
+      (d.rows || []).forEach(r => {
+        const row = el("div", "dtbl-row" + (r.drift ? " chem-drift" : ""));
+        const tag = el("div"); tag.appendChild(el("div", "plane-type", r.tag));
+        if (r.safety) tag.appendChild(el("div", "cell-sub", "safety-critical"));
+        row.appendChild(tag);
+        row.appendChild(el("div", "cell-time", r.addr));
+        row.appendChild(el("div", "chem-base", fmtv(r.baseline) + (r.unit ? " " + r.unit : "")));
+        const live = el("div", "chem-live" + (r.drift ? " drift" : ""));
+        live.textContent = fmtv(r.current) + (r.unit ? " " + r.unit : "");
+        row.appendChild(live);
+        row.appendChild(el("span", "st " + (r.drift ? "tripped" : "clear"), r.drift ? "DRIFTED" : "MATCH"));
+        body.appendChild(row);
+      });
+      if (!(d.rows || []).length) body.appendChild(el("div", "dtbl-empty", "No writable registers to diff."));
+    }).catch(() => {});
+  }
+
   // ---- loops ----
   applyRoleView();
   pollEvents(); pollOverview(); pollPlant(); pollTelemetry();
   setInterval(pollEvents, 1000);
   setInterval(pollOverview, 2000);
-  setInterval(() => { pollPlant(); if (activeTab === "diff" && activeSite !== "grfics-chem") loadDiff(); }, 1500);
+  setInterval(() => { pollPlant(); if (activeTab === "diff") { if (activeSite === "grfics-chem") loadChemDiff(); else loadDiff(); } }, 1500);
   setInterval(pollTelemetry, 1500);
   setInterval(() => { if (activeSite === "grfics-chem") pollChem(); }, 700);
 })();

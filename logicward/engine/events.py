@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Callable
 
 from logicward.engine import mitre_map
+from logicward.engine.classify import classify_drift
 
 # ── The Event contract ────────────────────────────────────────────────────────
 
@@ -218,6 +219,7 @@ class EventBus:
         identity.setdefault("who", event["source"])
         identity.setdefault("mac", None)
         identity.setdefault("channel", channel_for_type(etype))
+        category, category_reason = classify_drift(etype, details, identity)
         return {
             "event_id": event.get("event_id") or str(uuid.uuid4()),
             "type": etype,
@@ -226,6 +228,8 @@ class EventBus:
             "severity": severity,
             "details": details,
             "identity": identity,
+            "category": category,
+            "category_reason": category_reason,
             "mitre": self._mitre(etype, details),
             "received_at": now_iso(),
             "seq": seq,

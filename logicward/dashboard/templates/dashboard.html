@@ -274,16 +274,19 @@
         <div id="diff-body" class="diff"></div>
       </div>
       <div class="card hidden" id="diff-chem-note">
-        <div class="card-h">Program monitoring — GRFICS chemical reactor</div>
-        <p class="muted" style="line-height:1.6">
-          This site is monitored on the <b>register plane</b> (live Modbus holding
-          registers &amp; coils diffed against the signed baseline). The OpenPLC
-          controller runs <b>Structured Text</b>, not Rockwell L5X, so the
-          rung-level program diff shown for the thermal plant does not apply here.
-          A Structured-Text program-drift parser is on the roadmap — for now,
-          setpoint and command tampering are caught as register drift and appear
-          in the unified alert feed.
+        <div class="card-h">Register-plane diff — GRFICS chemical reactor
+          <span id="chem-diff-summary" class="diff-summary"></span>
+        </div>
+        <p class="muted tiny" style="padding:10px 18px 0;line-height:1.5;margin:0">
+          The OpenPLC controller runs <b>Structured Text</b>, not Rockwell L5X, so instead of a rung
+          diff this site is verified on the <b>register plane</b> — every writable holding register &amp;
+          control coil is diffed live against the signed baseline snapshot (a Structured-Text program
+          parser is on the roadmap). Any setpoint or command tampering shows up as drift below.
         </p>
+        <div class="dtbl chdtbl">
+          <div class="dtbl-head"><div>Tag</div><div>Modbus</div><div>Baseline</div><div>Live</div><div>State</div></div>
+          <div id="chem-diff-body"></div>
+        </div>
       </div>
     </section>
 
@@ -291,6 +294,12 @@
     <section id="tab-alerts" class="panel hidden">
       <div class="card">
         <div class="card-h">Alert feed <span class="muted tiny" id="alerts-summary">no alerts</span>
+          <span class="cat-filter" id="cat-filter" title="Filter by attack origin">
+            <button type="button" data-cat="all" class="active">All</button>
+            <button type="button" data-cat="external">External</button>
+            <button type="button" data-cat="internal">Internal</button>
+            <button type="button" data-cat="mistake">Mistake</button>
+          </span>
           <span class="hdr-actions">
             <button class="btn" data-cap="ack_all" id="btn-ack-all">Acknowledge all</button>
             <button class="btn" data-cap="baseline" id="btn-restore-alerts">Restore baseline</button>
