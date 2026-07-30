@@ -51,14 +51,14 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=18 * mm, bottomMargin=16 * mm,
                             leftMargin=16 * mm, rightMargin=16 * mm,
-                            title="LogicWard Forensic Report")
+                            title="Vigilo Forensic Report")
     styles = getSampleStyleSheet()
     h1 = ParagraphStyle("h1", parent=styles["Title"], textColor=NAVY, fontSize=20, spaceAfter=2)
     sub = ParagraphStyle("sub", parent=styles["Normal"], textColor=colors.HexColor("#5B6B80"), fontSize=9)
     h2 = ParagraphStyle("h2", parent=styles["Heading2"], textColor=NAVY, fontSize=12, spaceBefore=10)
     cell = ParagraphStyle("cell", parent=styles["Normal"], fontSize=7.5, leading=9)
 
-    story = [Paragraph("LogicWard — OT Drift Forensic Report", h1),
+    story = [Paragraph("Vigilo — OT Drift Forensic Report", h1),
              Paragraph(f"Generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M:%S} UTC · "
                        f"Controller: {meta.get('controller', '?')} · "
                        f"Baseline: {meta.get('baseline_hash', '?')[:23]}… · "
@@ -116,7 +116,7 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
     story += [Spacer(1, 10),
               Paragraph("MITRE ATT&CK for ICS technique IDs are rule-based mappings verified against "
                         "the live matrix (attack.mitre.org/matrices/ics). This report is generated "
-                        "evidence from the LogicWard event bus.", sub)]
+                        "evidence from the Vigilo event bus.", sub)]
 
     doc.build(story)
     return buf.getvalue()

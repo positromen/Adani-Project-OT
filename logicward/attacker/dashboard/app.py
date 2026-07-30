@@ -104,7 +104,7 @@ CHEM_CATALOGUE = [
         "category": "Modbus",
         "severity": "high",
         "mitre": "T0855 — Unauthorized Command",
-        "description": "STEALTH OPENER. Skew the feed ratio while keeping total inflow constant — level and pressure barely move, so no process alarm fires, but the composition swings and the reactor liquid recolours (ruined batch). Point: LogicWard still catches the silent register drift. Watch the feed-1 / feed-2 gauges diverge.",
+        "description": "STEALTH OPENER. Skew the feed ratio while keeping total inflow constant — level and pressure barely move, so no process alarm fires, but the composition swings and the reactor liquid recolours (ruined batch). Point: Vigilo still catches the silent register drift. Watch the feed-1 / feed-2 gauges diverge.",
         "icon": "🧪",
     },
     {
@@ -161,7 +161,7 @@ UTILITY_ACTIONS = [
     {
         "id": "restart-pi",
         "name": "Restart Pi Services",
-        "description": "Kill all LogicWard processes on the Pi and restart run_pi.sh.",
+        "description": "Kill all Vigilo processes on the Pi and restart run_pi.sh.",
         "icon": "🔄",
     },
     {
@@ -343,7 +343,7 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="LogicWard Attacker Dashboard")
+    p = argparse.ArgumentParser(description="Vigilo Attacker Dashboard")
     p.add_argument("--host", default="10.119.190.53", help="Pi IP address")
     p.add_argument("--port", type=int, default=9090, help="Dashboard port")
     p.add_argument("--modbus-port", type=int, default=5020)
@@ -355,7 +355,7 @@ def main() -> None:
 
     app = create_app(args.host, args.modbus_port, args.program_port,
                      chem_host=args.chem_host, chem_port=args.chem_port)
-    print(f"\n  [*] LogicWard ATTACKER CONSOLE")
+    print(f"\n  [*] VIGILO ATTACKER CONSOLE")
     print(f"  Thermal (Pi) : {args.host}  (Modbus :{args.modbus_port}, Program :{args.program_port})")
     print(f"  Chemical (3D): {args.chem_host}:{args.chem_port}")
     print(f"  Console      : http://localhost:{args.port}/")

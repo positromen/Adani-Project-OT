@@ -36,7 +36,7 @@
     }
     var unityInstance = UnityLoader.instantiate("unityContainer", "Build/ChemicalPlant.json", { onProgress: prog });
 
-    // -- LogicWard Auto-Reset Monitor --
+    // -- Vigilo Auto-Reset Monitor --
     var lastGen = null;
     setInterval(function() {
       fetch("/api/site-b/state").then(function(r) { return r.json(); }).then(function(s) {

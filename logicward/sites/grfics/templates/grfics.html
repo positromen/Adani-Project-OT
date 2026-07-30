@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LogicWard · Site B — {{ site_name }}</title>
+  <title>Vigilo · Site B — {{ site_name }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='grfics.css') }}" />
 </head>
 <body>
   <div class="top">
     <div class="dot"></div>
     <div>
-      <h1>LogicWard · Site B — {{ site_name }}</h1>
+      <h1>Vigilo · Site B — {{ site_name }}</h1>
       <div class="sub">OT drift detection over a live 3D chemical process · GRFICSv3</div>
     </div>
     <span class="badge">Modbus TCP 127.0.0.1:{{ modbus_port }} · unauthenticated</span>
@@ -70,7 +70,7 @@
 
   <script src="{{ url_for('static', filename='grfics.js') }}"></script>
   <script>
-    // -- LogicWard Auto-Reset Monitor (Parent Page) --
+    // -- Vigilo Auto-Reset Monitor (Parent Page) --
     // We poll the backend generation counter from the parent frame.
     // If it changes, we forcefully reload the 3D iframe from the outside
     // to bypass the Unity WebGL "Game Over" crash!

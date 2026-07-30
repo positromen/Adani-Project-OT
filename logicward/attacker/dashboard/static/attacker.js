@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LogicWard Red Team Console — frontend logic
+   Vigilo Red Team Console — frontend logic
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function ts() {
@@ -134,3 +134,76 @@ async function fireUtility(id, btn) {
     log("WARNING: Could not reach attacker backend.", "error");
   }
 })();
+
+/* ── Guided attack terminal (⌨ GUIDED) — show + run the real command ─────── */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+let gtCurrent = null;
+
+function cliCommand(id, scope) {
+  const r = window.RT || {};
+  if (scope === "chem")
+    return "python -m logicward.sites.grfics.attacks --host " + (r.chemHost || "127.0.0.1") +
+           " --port " + (r.chemPort || "5021") + " " + id;
+  return "python -m logicward.attacker.attacks --host " + (r.thermalHost || "127.0.0.1") +
+         " --modbus-port " + (r.modbusPort || "5020") + " " + id;
+}
+
+function gtWrite(html, cls) {
+  const t = document.getElementById("gtTerm");
+  const d = document.createElement("div");
+  d.className = "gt-line " + (cls || "");
+  d.innerHTML = html;
+  t.appendChild(d);
+  t.scrollTop = t.scrollHeight;
+}
+
+function guidedAttack(id, name, scope) {
+  gtCurrent = { id, name, scope, cmd: cliCommand(id, scope) };
+  document.getElementById("gtTitle").textContent = "Guided attack · " + name;
+  document.getElementById("gtTerm").innerHTML = "";
+  const run = document.getElementById("gtRun");
+  run.disabled = false; run.querySelector(".btn-label").textContent = "RUN COMMAND";
+  gtWrite("# " + esc(name), "gt-comment");
+  gtWrite("# Step 1 — from the attacker workstation, run the exploit against the live target:", "gt-comment");
+  gtWrite('<span class="gt-prompt">attacker@redteam:~$</span> ' + esc(gtCurrent.cmd), "gt-cmd");
+  gtWrite("", "");
+  gtWrite("Press RUN COMMAND to execute now, or copy it and run in a real terminal.", "gt-dim");
+  document.getElementById("gtOverlay").classList.add("open");
+}
+
+function closeGuided() { document.getElementById("gtOverlay").classList.remove("open"); }
+
+function guidedCopy() {
+  if (!gtCurrent) return;
+  navigator.clipboard.writeText(gtCurrent.cmd).then(() => log("Command copied to clipboard", "system"));
+}
+
+async function guidedRun() {
+  if (!gtCurrent) return;
+  const run = document.getElementById("gtRun");
+  run.disabled = true; run.querySelector(".btn-label").textContent = "RUNNING…";
+  gtWrite('<span class="gt-prompt">attacker@redteam:~$</span> ' + esc(gtCurrent.cmd), "gt-cmd");
+  const payload = { id: gtCurrent.id };
+  if (gtCurrent.id === "ddos") { const s = document.getElementById("ddos-slider"); if (s) payload.count = parseInt(s.value, 10); }
+  try {
+    const resp = await fetch("/api/attack", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    const cmds = Array.isArray(data.commands) ? data.commands : [];
+    for (let i = 0; i < cmds.length; i++) { await sleep(240); gtWrite("  &raquo; " + esc(cmds[i]), "gt-out"); }
+    await sleep(200);
+    if (data.status === "success") {
+      gtWrite("[+] " + esc(data.detail || "attack delivered"), "gt-ok");
+      log("✓ (guided) " + gtCurrent.id + ": " + (data.detail || "success"), "success");
+      logCommands(data.commands);
+    } else {
+      gtWrite("[!] " + esc(data.detail || "failed"), "gt-err");
+      log("✗ (guided) " + gtCurrent.id + ": " + (data.detail || "failed"), "error");
+    }
+    gtWrite('<span class="gt-prompt">attacker@redteam:~$</span> <span class="gt-cursor">&#9613;</span>', "gt-cmd");
+  } catch (err) {
+    gtWrite("[!] " + esc(err.message), "gt-err");
+  }
+  run.disabled = false; run.querySelector(".btn-label").textContent = "RUN AGAIN";
+}

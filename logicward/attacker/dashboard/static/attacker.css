@@ -420,6 +420,33 @@ body {
   padding: 1px 6px;
 }
 
+/* ── Guided attack terminal (⌨ GUIDED) ───────────────────────────────────── */
+.btn-guided{background:transparent;border:1px solid #2a3548;color:#9fb0cc;font-family:inherit;font-size:.78em;font-weight:700;letter-spacing:.04em;padding:9px 12px;border-radius:6px;cursor:pointer;transition:border-color .12s,color .12s}
+.btn-guided:hover{border-color:var(--red-primary,#ff3b47);color:#fff}
+.gt-overlay{position:fixed;inset:0;background:rgba(3,6,12,.74);display:none;align-items:center;justify-content:center;z-index:200;padding:24px}
+.gt-overlay.open{display:flex}
+.gt-modal{width:min(880px,96vw);max-height:88vh;display:flex;flex-direction:column;background:#0a0e16;border:1px solid #24304a;border-radius:12px;box-shadow:0 40px 90px -20px rgba(0,0,0,.85);overflow:hidden}
+.gt-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #1b2438;background:#0d1220}
+.gt-dot{width:9px;height:9px;border-radius:50%;background:#ff3b47;box-shadow:0 0 8px #ff3b47;flex:none}
+.gt-title{font-weight:700;color:#e6edf7;font-size:.95em}
+.gt-close{margin-left:auto;background:transparent;border:0;color:#7d8aa3;font-size:1.05em;cursor:pointer;line-height:1}
+.gt-close:hover{color:#fff}
+.gt-term{flex:1;min-height:230px;overflow:auto;padding:14px 16px;font-family:"JetBrains Mono",monospace;font-size:12.5px;line-height:1.65;background:#070b12}
+.gt-line{white-space:pre-wrap;word-break:break-word}
+.gt-comment{color:#5f7597}
+.gt-dim{color:#8493ac}
+.gt-cmd{color:#e6edf7}
+.gt-prompt{color:#37e0a0;font-weight:700}
+.gt-out{color:#8fb6dd}
+.gt-ok{color:#37e0a0;font-weight:700}
+.gt-err{color:#ff6a72;font-weight:700}
+.gt-cursor{color:#37e0a0;animation:gtblink 1s steps(1) infinite}
+@keyframes gtblink{50%{opacity:0}}
+.gt-foot{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid #1b2438;background:#0d1220;flex-wrap:wrap}
+.gt-copy{background:transparent;border:1px solid #2a3548;color:#b9c4d8;padding:9px 13px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.85em}
+.gt-copy:hover{border-color:#37e0a0;color:#fff}
+.gt-hint{font-size:.8em;color:#5f7597}
+
 /* ── Animations ───────────────────────────────────────────────────────── */
 @keyframes spin {
   to { transform: rotate(360deg); }

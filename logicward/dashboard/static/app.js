@@ -1,4 +1,4 @@
-/* LogicWard SOC dashboard — polling + rendering + role-gated actions */
+/* Vigilo SOC dashboard — polling + rendering + role-gated actions */
 /* Modified by Komal & Antigravity (Adani Project RBAC Fixes) */
 (function () {
   "use strict";
@@ -25,6 +25,7 @@
   let activeTab = "overview";
   let paused = false;
   const acked = new Set();
+  const expanded = new Set();   // event_ids whose Wazuh-style log detail is expanded
 
   // ---- multi-site ----
   let activeSite = "thermal-pi";          // "thermal-pi" | "grfics-chem" | "all"
@@ -602,6 +603,58 @@
     return c;
   }
 
+  // ---- Wazuh-style expandable log detail (click a row to open) ----
+  function toggleExpand(id) {
+    if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+    render();
+  }
+  function logDetail(e) {
+    const d = el("div", "dtbl-detail");
+    const grid = el("div", "ld-grid");
+    const kv = (k, v, cls) => {
+      if (v == null || v === "") return;
+      const r = el("div", "ld-kv");
+      r.appendChild(el("span", "ld-k", k));
+      r.appendChild(el("span", "ld-v" + (cls ? " " + cls : ""), String(v)));
+      grid.appendChild(r);
+    };
+    const det = e.details || {}, id = e.identity || {}, m = e.mitre || {};
+    kv("Event ID", e.event_id);
+    kv("Type", e.type);
+    kv("Severity", (e.severity || "").toUpperCase(), e.severity);
+    kv("Category", e.category, e.category);
+    kv("Time (UTC)", e.timestamp);
+    kv("Received", e.received_at);
+    kv("Seq", e.seq);
+    kv("Source", e.source);
+    kv("Site", det.site || "thermal-pi");
+    kv("Identity · who", id.who);
+    kv("Identity · MAC", id.mac);
+    kv("Identity · channel", id.channel);
+    kv("MITRE · tactic", m.tactic);
+    kv("MITRE · technique", m.technique_id ? (m.technique_id + " " + (m.technique_name || "")) : null);
+    kv("Reason", det.reason);
+    if (det.command) kv("Command", det.command, "mono");
+    kv("Tag", det.tag); kv("Coil", det.coil); kv("Rung", det.rung_id);
+    if (det.baseline != null) kv("Baseline", det.baseline);
+    if (det.current != null) kv("Current", det.current);
+    if (det.safety_critical) kv("Safety-critical", "YES", "crit");
+    d.appendChild(el("div", "ld-head", "Decoded event"));
+    d.appendChild(grid);
+    d.appendChild(el("div", "ld-head", "Full event (JSON)"));
+    const pre = el("pre", "log-json"); pre.textContent = JSON.stringify(e, null, 2);
+    d.appendChild(pre);
+    return d;
+  }
+  function expandableItem(row, e, ignoreSel) {
+    const item = el("div", "dtbl-item" + (expanded.has(e.event_id) ? " open" : ""));
+    row.classList.add("clickable");
+    row.addEventListener("click", (ev) => { if (ignoreSel && ev.target.closest(ignoreSel)) return; toggleExpand(e.event_id); });
+    item.appendChild(row);
+    if (expanded.has(e.event_id)) item.appendChild(logDetail(e));
+    return item;
+  }
+
   function alertsTableRow(e) {
     const row = el("div", "dtbl-row");
     if (acked.has(e.event_id)) row.classList.add("acked");
@@ -628,7 +681,7 @@
     } else { mt.appendChild(el("div", "cell-sub", "N/A")); }
     row.appendChild(mt);
     row.appendChild(respCell(e));
-    return row;
+    return expandableItem(row, e, ".resp-cell");
   }
 
   function evidenceTableRow(e) {
@@ -640,7 +693,7 @@
     row.appendChild(el("div", "ev-what", (e.details && e.details.reason) || pretty(e.type)));
     const id = e.event_id || "";
     row.appendChild(el("div", "ev-id", id ? (id.slice(0, 13) + "…") : "—"));
-    return row;
+    return expandableItem(row, e, null);
   }
 
   function render() {
