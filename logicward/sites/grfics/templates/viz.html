@@ -24,6 +24,15 @@
       if (p === 1) { var o = document.getElementById("ov"); if (o) o.style.display = "none"; }
     }
     var unityInstance = UnityLoader.instantiate("unityContainer", "Build/ChemicalPlant.json", { onProgress: prog });
+
+    // -- LogicWard Auto-Reset Monitor --
+    var lastGen = null;
+    setInterval(function() {
+      fetch("/api/site-b/state").then(function(r) { return r.json(); }).then(function(s) {
+        if (lastGen === null) { lastGen = s.generation; }
+        else if (s.generation !== lastGen) { window.location.reload(); }
+      }).catch(function() {});
+    }, 1000);
   </script>
 </body>
 </html>

@@ -126,13 +126,13 @@ class ChemicalDataStore:
             purge_flow = purge * (0.6 + self.pressure / 3200.0)
             product_flow = product * (0.4 + self.level / 100.0)
 
-            self.level += (inflow - product_flow) * dt * 2.5
+            self.level += (inflow - product_flow) * dt * 0.75
             self.level = max(0.0, min(125.0, self.level))
 
             dp = inflow * 1.0 - purge_flow * 1.26
             if esd:
                 dp = -purge_flow * 1.5 - 120.0
-            self.pressure += dp * dt * 5.0
+            self.pressure += dp * dt * 1.5
             self.pressure = max(0.0, min(4200.0, self.pressure))
 
             tgtA = 30.0 + f1 * 0.3
@@ -227,7 +227,8 @@ class ChemicalDataStore:
                     "purge_flow": round(e("Purge_Flow"), 2),
                     "product_flow": round(e("Product_Flow"), 2),
                     "pressure": round(e("Reactor_Pressure"), 2),
-                    "liquid_level": round(e("Liquid_Level"), 2),
+                    "liquid_level": min(99.9, round(e("Liquid_Level"), 2)),
+
                     "A_in_purge": round(e("A_Composition"), 2),
                     "B_in_purge": round(e("B_Composition"), 2),
                     "C_in_purge": round(e("C_Composition"), 2),
