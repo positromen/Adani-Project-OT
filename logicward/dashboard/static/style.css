@@ -310,3 +310,7 @@ b{font-weight:700}
 
 /* attacker attribution — "by whom" chip on alerts */
 .who-chip{font-size:10px;font-weight:700;color:var(--crit);background:var(--crit-bg);padding:1px 7px;border-radius:20px;font-family:var(--mono)}
+
+/* baseline upload control (Program Diff tab) */
+.bl-upload{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 16px}
+.bl-upload input[type=file]{font-size:12px;color:var(--ink-2)}

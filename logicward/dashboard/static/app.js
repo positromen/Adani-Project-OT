@@ -136,6 +136,23 @@
   const clearLogsBtn = $("#btn-clear-logs"); if (clearLogsBtn) clearLogsBtn.addEventListener("click", () =>
     jpost("/api/alerts/clear").then(() => { toast("All alerts cleared"); setTimeout(() => window.location.reload(), 500); }));
 
+  // baseline upload (L5X / XML / JSON)
+  const blBtn = $("#bl-upload-btn");
+  if (blBtn) blBtn.addEventListener("click", () => {
+    const fileEl = $("#bl-file"), msg = $("#bl-upload-msg");
+    const f = fileEl && fileEl.files[0];
+    if (!f) { if (msg) msg.textContent = "choose a .L5X / .xml / .json file first"; return; }
+    const fd = new FormData(); fd.append("file", f);
+    if (msg) msg.textContent = "uploading…";
+    fetch("/api/baseline/upload", { method: "POST", body: fd }).then(r => r.json()).then(d => {
+      if (d.error) { if (msg) msg.textContent = "✗ " + d.error; toast("Baseline upload rejected"); }
+      else {
+        if (msg) msg.textContent = "✓ baseline set (" + d.kind + ") · " + (d.hash || "").slice(7, 19);
+        toast("Approved baseline updated"); if (activeSite !== "grfics-chem") loadDiff();
+      }
+    }).catch(() => { if (msg) msg.textContent = "✗ upload error"; });
+  });
+
   // ---- polling ----
   function pollEvents() {
     fetch("/api/events?since=" + cursor).then(r => r.json()).then(d => {

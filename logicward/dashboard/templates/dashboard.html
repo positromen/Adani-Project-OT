@@ -216,6 +216,14 @@
 
     <!-- Program Diff -->
     <section id="tab-diff" class="panel hidden">
+      <div class="card" data-cap="baseline" id="baseline-upload">
+        <div class="card-h">Upload approved baseline <span class="muted tiny" style="margin-left:auto">.L5X / .xml program &nbsp;·&nbsp; .json register map</span></div>
+        <div class="bl-upload">
+          <input type="file" id="bl-file" accept=".l5x,.xml,.json" />
+          <button class="btn primary" id="bl-upload-btn">Set as approved baseline</button>
+          <span class="muted tiny" id="bl-upload-msg"></span>
+        </div>
+      </div>
       <div class="card" id="diff-thermal">
         <div class="card-h">
           Baseline vs running program
