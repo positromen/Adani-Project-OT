@@ -7,7 +7,7 @@
   <title>LogicWard — SOC Console</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body data-role="{{ role }}" data-username="{{ username }}">
+<body data-role="{{ role }}" data-username="{{ username }}" data-caps="{{ caps }}">
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
@@ -44,10 +44,10 @@
         <span class="chip med">MED <b id="c-med">0</b></span>
       </div>
       <div class="topbar-actions">
-        <button class="btn" data-roles="engineer,admin" id="btn-lock">Re-lock baseline</button>
-        <button class="btn" data-roles="engineer,admin" id="btn-restore">Restore baseline</button>
-        <button class="btn danger" data-roles="operator,engineer,soc_analyst,admin" id="btn-clear-logs">Acknowledge All</button>
-        <a class="btn primary" data-roles="soc_analyst,admin" id="btn-pdf" href="/api/evidence/report.pdf">Export PDF</a>
+        <button class="btn" data-cap="baseline" id="btn-lock">Re-lock baseline</button>
+        <button class="btn" data-cap="baseline" id="btn-restore">Restore baseline</button>
+        <button class="btn danger" data-cap="ack_all" id="btn-clear-logs">Acknowledge All</button>
+        <a class="btn primary" data-cap="evidence" id="btn-pdf" href="/api/evidence/report.pdf">Export PDF</a>
       </div>
     </header>
 
@@ -265,7 +265,7 @@
             <div class="role-card">
               <div class="role-avatar">🧑‍🏭</div>
               <div class="role-name">Operator (DCS/Control Room)</div>
-              <div class="role-sub">Live Plant Access</div>
+              <div class="role-sub">Live Plant Access <span class="role-login">operator / operator123</span></div>
               <ul class="role-points">
                 <li>Live HMI/plant view and real-time alarm feed access only.</li>
                 <li>Normal behavior involves acknowledging alarms during shift hours.</li>
@@ -280,7 +280,7 @@
             <div class="role-card">
               <div class="role-avatar">🧑‍🔧</div>
               <div class="role-name">C&amp;I / Control Engineer</div>
-              <div class="role-sub">PLC Program Access</div>
+              <div class="role-sub">PLC Program Access <span class="role-login">engineer / engineer123</span></div>
               <ul class="role-points">
                 <li>Baseline capture, program (L5X) diff view, re-baseline and restore actions.</li>
                 <li>Normal behavior involves scheduled maintenance-window logic pushes.</li>
@@ -294,7 +294,7 @@
             <div class="role-card">
               <div class="role-avatar">🧑‍💻</div>
               <div class="role-name">OT Network / Security Engineer</div>
-              <div class="role-sub">Infrastructure Access</div>
+              <div class="role-sub">Infrastructure Access <span class="role-login">netsec / netsec123</span></div>
               <ul class="role-points">
                 <li>Firewall, DMZ, and network segmentation configuration access.</li>
                 <li>Normal behavior includes patch scheduling and asset inventory updates.</li>
@@ -308,7 +308,7 @@
             <div class="role-card">
               <div class="role-avatar">🕵️</div>
               <div class="role-name">SOC Analyst</div>
-              <div class="role-sub">Oversight Role</div>
+              <div class="role-sub">Oversight Role <span class="role-login">soc / soc123</span></div>
               <ul class="role-points">
                 <li>Full alert feed access, MITRE ATT&amp;CK mapping, forensic PDF export.</li>
                 <li>Normal behavior includes alert triage and incident investigation.</li>
@@ -322,7 +322,7 @@
             <div class="role-card">
               <div class="role-avatar">👷</div>
               <div class="role-name">Vendor / OEM Contractor</div>
-              <div class="role-sub">Scoped External Access</div>
+              <div class="role-sub">Scoped External Access <span class="role-login">vendor / vendor123</span></div>
               <ul class="role-points">
                 <li>Time-bound, highly restricted access to specific PLC/RTU for maintenance.</li>
                 <li>Normal behavior is strictly contained to assigned IPs and time windows.</li>
@@ -336,7 +336,7 @@
             <div class="role-card">
               <div class="role-avatar">🧑‍💼</div>
               <div class="role-name">CISO / Plant Cybersecurity Head</div>
-              <div class="role-sub">Incident Command &amp; Compliance</div>
+              <div class="role-sub">Incident Command &amp; Compliance <span class="role-login">ciso / ciso123</span></div>
               <ul class="role-points">
                 <li>Full cross-role visibility, final incident sign-off, compliance reporting.</li>
                 <li>Normal behavior includes periodic audit review and CERT-In reporting.</li>

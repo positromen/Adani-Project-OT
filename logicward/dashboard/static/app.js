@@ -2,9 +2,10 @@
 /* Modified by Komal & Antigravity (Adani Project RBAC Fixes) */
 (function () {
   "use strict";
-  const ROLE_RANK = { operator: 1, engineer: 2, soc_analyst: 3, admin: 4 };
   const role = document.body.dataset.role || "operator";
-  const myRank = ROLE_RANK[role] || 0;
+  // capability-based RBAC (6 roles) — the server sends this user's capabilities
+  const caps = (document.body.dataset.caps || "").split(",").filter(Boolean);
+  const hasCap = (c) => caps.includes(c);
   const SEV_RANK = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
 
   let cursor = 0;
@@ -37,10 +38,9 @@
     clearTimeout(t._h); t._h = setTimeout(() => t.classList.add("hidden"), 2600);
   }
 
-  // role-gate action controls
-  document.querySelectorAll("[data-roles]").forEach(e => {
-    const allowed = e.dataset.roles.split(",");
-    if (!allowed.includes(role) && role !== "admin") e.remove();
+  // capability-gate action controls: remove any control this role can't use
+  document.querySelectorAll("[data-cap]").forEach(e => {
+    if (!hasCap(e.dataset.cap)) e.remove();
   });
 
   // tabs
@@ -231,10 +231,11 @@
   function alertActions(e) {
     const wrap = el("div", "alert-actions");
     const mk = (label, fn) => { const b = el("button", "mini-btn", label); b.onclick = fn; wrap.appendChild(b); };
-    mk("Ack", () => { acked.add(e.event_id); flagMimic(); jpost("/api/response/ack", { ref: e.event_id }).then(() => toast("Acknowledged")); });
-    if (myRank >= ROLE_RANK.soc_analyst && e.type === "physical.rogue_device")
+    if (hasCap("ack"))
+      mk("Ack", () => { acked.add(e.event_id); flagMimic(); jpost("/api/response/ack", { ref: e.event_id }).then(() => toast("Acknowledged")); });
+    if (hasCap("network_response") && e.type === "physical.rogue_device")
       mk("Quarantine", () => jpost("/api/response/quarantine", { mac: e.details.mac, ip: e.details.ip, ref: e.event_id }).then(() => toast("Device quarantined")));
-    if (myRank >= ROLE_RANK.soc_analyst && e.details && e.details.safety_critical && e.type.startsWith("cyber."))
+    if (hasCap("safe_state") && e.details && e.details.safety_critical && e.type.startsWith("cyber."))
       mk("Safe-state", () => jpost("/api/response/safe_state", { rung_id: e.details.rung_id, ref: e.event_id }).then(() => toast("Safe-state recommended")));
     return wrap;
   }

@@ -34,14 +34,44 @@ from logicward.engine.server import api as engine_api
 from logicward.engine.sources import EmbeddedPlant, RemotePlant
 from logicward.sites import registry
 
-# ── demo-grade RBAC user directory ────────────────────────────────────────────
+# ── RBAC — 6 OT/ICS roles, capability-based ──────────────────────────────────
+# These are the six functional roles shown on the "Roles & Access" tab. Access is
+# gated by CAPABILITY (what a role may DO), not a linear rank, because the roles
+# have different scopes (a Network Engineer can quarantine a device but not touch
+# the PLC program; a Control Engineer is the reverse).
 USERS = {
-    "operator": {"password": "operator123", "role": "operator", "name": "Ops Console"},
-    "engineer": {"password": "engineer123", "role": "engineer", "name": "Control Engineer"},
-    "soc":      {"password": "soc123",      "role": "soc_analyst", "name": "SOC Analyst"},
-    "admin":    {"password": "admin123",    "role": "admin", "name": "System Administrator"},
+    "operator": {"password": "operator123", "role": "operator",         "name": "Operator (Control Room)"},
+    "engineer": {"password": "engineer123", "role": "control_engineer", "name": "C&I / Control Engineer"},
+    "netsec":   {"password": "netsec123",   "role": "network_engineer", "name": "OT Network / Security Engineer"},
+    "soc":      {"password": "soc123",      "role": "soc_analyst",      "name": "SOC Analyst"},
+    "vendor":   {"password": "vendor123",   "role": "vendor",           "name": "Vendor / OEM Contractor"},
+    "ciso":     {"password": "ciso123",     "role": "ciso",             "name": "CISO / Plant Cyber Head"},
 }
-ROLE_RANK = {"operator": 1, "engineer": 2, "soc_analyst": 3, "admin": 4}
+
+# Capabilities gate every action/control (UI + API):
+#   ack               acknowledge a single alert
+#   ack_all           acknowledge / clear the whole alert feed
+#   baseline          re-lock / restore the approved baseline (engineering)
+#   network_response  quarantine a rogue device (network/security)
+#   safe_state        recommend a safe-state on a safety-critical alert
+#   evidence          export the signed forensic PDF / view the evidence log
+#   compliance        CISO oversight (cross-role incident command)
+ALL_CAPS = ("ack", "ack_all", "baseline", "network_response", "safe_state", "evidence", "compliance")
+ROLE_CAPS: dict[str, set[str]] = {
+    "operator":         {"ack", "ack_all"},
+    "control_engineer": {"ack", "ack_all", "baseline", "safe_state"},
+    "network_engineer": {"ack", "ack_all", "network_response"},
+    "soc_analyst":      {"ack", "ack_all", "network_response", "safe_state", "evidence"},
+    "vendor":           set(),                 # scoped, read-only (heavily monitored)
+    "ciso":             set(ALL_CAPS),         # full cross-role authority
+}
+# retained for display ordering only (NOT used for gating)
+ROLE_RANK = {"operator": 1, "vendor": 1, "control_engineer": 2, "network_engineer": 2,
+             "soc_analyst": 3, "ciso": 4}
+
+
+def caps_for(role: str) -> set[str]:
+    return ROLE_CAPS.get(role, set())
 
 
 # ── production-grade analytics helpers (additive) ─────────────────────────────
@@ -234,15 +264,16 @@ def login_required(fn):
     return wrap
 
 
-def role_required(min_role: str):
+def require_cap(cap: str):
+    """Gate a route on a capability (see ROLE_CAPS)."""
     def deco(fn):
         @functools.wraps(fn)
         def wrap(*a, **k):
             role = _current_role()
             if not role:
                 return jsonify({"error": "authentication required"}), 401
-            if ROLE_RANK.get(role, 0) < ROLE_RANK[min_role]:
-                return jsonify({"error": f"requires role >= {min_role}"}), 403
+            if cap not in caps_for(role):
+                return jsonify({"error": f"role '{role}' lacks capability '{cap}'"}), 403
             return fn(*a, **k)
         return wrap
     return deco
@@ -292,8 +323,9 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     @login_required
     def dashboard_page():
         u = session["user"]
+        role = USERS[u]["role"]
         return render_template("dashboard.html", user=USERS[u]["name"], username=u,
-                               role=USERS[u]["role"])
+                               role=role, caps=",".join(sorted(caps_for(role))))
 
     # -- data APIs --
     @app.get("/api/sites")
@@ -328,13 +360,14 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
                                                      site=site, limit=300)})
 
     @app.post("/api/alerts/clear")
+    @require_cap("ack_all")
     def api_alerts_clear():
         dash.bus.clear()
         dash.drift.reset()
         return jsonify({"status": "cleared", "message": "All alerts have been cleared from memory and disk."})
 
     @app.get("/api/evidence/report.pdf")
-    @role_required("soc_analyst")
+    @require_cap("evidence")
     def api_report():
         site = request.args.get("site")
         events = dash.bus.snapshot()
@@ -352,7 +385,7 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
 
     # -- actions (role-gated) --
     @app.post("/api/baseline/lock")
-    @role_required("engineer")
+    @require_cap("baseline")
     def api_lock():
         dash.relock_baseline()
         dash.bus.emit_new("response.restore_baseline", "dashboard",
@@ -361,14 +394,14 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
         return jsonify({"status": "locked", "hash": dash.signed["manifest"]["structural_hash"]})
 
     @app.post("/api/response/ack")
-    @login_required
+    @require_cap("ack")
     def api_ack():
         d = request.get_json(silent=True) or {}
         ev = dash.response.operator_ack(d.get("ref", ""), actor=session["user"], note=d.get("note"))
         return jsonify(ev)
 
     @app.post("/api/response/quarantine")
-    @role_required("soc_analyst")
+    @require_cap("network_response")
     def api_quarantine():
         d = request.get_json(silent=True) or {}
         ev = dash.response.quarantine_device(d.get("mac", "?"), d.get("ip"), actor=session["user"],
@@ -376,14 +409,14 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
         return jsonify(ev)
 
     @app.post("/api/response/safe_state")
-    @role_required("soc_analyst")
+    @require_cap("safe_state")
     def api_safe_state():
         d = request.get_json(silent=True) or {}
         ev = dash.response.recommend_safe_state(d.get("rung_id"), actor=session["user"], ref=d.get("ref"))
         return jsonify(ev)
 
     @app.post("/api/response/restore")
-    @role_required("engineer")
+    @require_cap("baseline")
     def api_restore():
         d = request.get_json(silent=True) or {}
         ev = dash.response.restore_baseline(actor=session["user"], ref=d.get("ref"))
