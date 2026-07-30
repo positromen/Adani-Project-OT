@@ -12,6 +12,7 @@
   const events = [];
   const seen = new Set();
   let activeTab = "overview";
+  let paused = false;
   const acked = new Set();
 
   // ---- multi-site ----
@@ -66,15 +67,22 @@
       document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
       item.classList.add("active");
       activeTab = item.dataset.tab;
+      setView(activeTab);
       document.querySelectorAll(".panel").forEach(p => p.classList.add("hidden"));
       $("#tab-" + activeTab).classList.remove("hidden");
       if (activeTab === "diff" && activeSite !== "grfics-chem") loadDiff();
       if (activeTab === "alerts" || activeTab === "evidence") render();
+      if (activeTab === "overview") renderOverviewCards();
     });
   });
 
   // ---- site selector ----
   const SITE_SHORT = { "thermal-pi": "⚡ Thermal", "grfics-chem": "⚗️ Chemical", "all": "🌐 All" };
+  const SITE_TAB_META = {
+    "thermal-pi": ["Thermal plant", "var(--accent)"],
+    "grfics-chem": ["Chemical reactor", "var(--crit)"],
+    "all": ["All sites", "var(--muted)"],
+  };
 
   function buildSiteTabs(list) {
     const box = $("#siteTabs"); if (!box) return;
@@ -83,7 +91,10 @@
     if (chemAvailable) { ids.push("grfics-chem"); ids.push("all"); }
     box.innerHTML = "";
     ids.forEach(id => {
-      const b = el("button", "site-tab" + (id === activeSite ? " active" : ""), SITE_SHORT[id] || id);
+      const meta = SITE_TAB_META[id] || [id, "var(--muted)"];
+      const b = el("button", "site-tab" + (id === activeSite ? " active" : ""));
+      const dot = el("span", "st-dot"); dot.style.background = meta[1]; b.appendChild(dot);
+      b.appendChild(el("span", null, meta[0]));
       b.dataset.site = id;
       b.onclick = () => setSite(id);
       box.appendChild(b);
@@ -120,7 +131,7 @@
     }
   }
   function pollChem() {
-    if (!chemAvailable) return;
+    if (!chemAvailable || paused) return;
     fetch("/api/site-b/state").then(r => r.json()).then(s => {
       const o = s.feed.outputs, st = s.feed.state;
       setCG("cg-press", "cgm-press", o.pressure, "kPa", 4000, 2600, 3200);
@@ -158,6 +169,17 @@
     jpost("/api/alerts/clear").then(() => { toast("All alerts cleared"); setTimeout(() => window.location.reload(), 500); }));
   const restoreAlertsBtn = $("#btn-restore-alerts"); if (restoreAlertsBtn) restoreAlertsBtn.addEventListener("click", () =>
     jpost("/api/response/restore").then(() => toast("Approved baseline restored")));
+  // pause live updates + "view all" jump
+  const pauseBtn = $("#btn-pause");
+  if (pauseBtn) pauseBtn.addEventListener("click", () => {
+    paused = !paused;
+    pauseBtn.textContent = paused ? "Resume" : "Pause";
+    pauseBtn.classList.toggle("primary", paused);
+    toast(paused ? "Live updates paused" : "Live updates resumed");
+  });
+  const viewAllBtn = $("#ov-viewall");
+  if (viewAllBtn) viewAllBtn.addEventListener("click", () => { const n = document.querySelector('.nav-item[data-tab="alerts"]'); if (n) n.click(); });
+  setView(activeTab);
 
   // baseline upload (L5X / XML / JSON)
   const blBtn = $("#bl-upload-btn");
@@ -178,6 +200,7 @@
 
   // ---- polling ----
   function pollEvents() {
+    if (paused) return;
     fetch("/api/events?since=" + cursor).then(r => r.json()).then(d => {
       cursor = d.cursor;
       let newCrit = false;
@@ -191,27 +214,209 @@
     }).catch(() => {});
   }
 
+  let lastOverview = null, lastPlant = null, lastChem = null;
+
   function pollOverview() {
+    if (paused) return;
     fetch("/api/overview").then(r => r.json()).then(o => {
-      $("#controller").textContent = o.controller || "—";
-      const c = o.severity_counts || {};
-      $("#c-crit").textContent = c.critical || 0;
-      $("#c-high").textContent = c.high || 0;
-      $("#c-med").textContent = c.medium || 0;
-      $("#kpi-crit").textContent = c.critical || 0;
-      $("#kpi-total").textContent = o.event_total || 0;
-      const integ = $("#kpi-integrity"); integ.textContent = o.baseline_integrity;
-      integ.className = "kpi-val " + (o.baseline_integrity === "VALID" ? "ok" : "bad");
-      const sync = $("#kpi-sync"); sync.textContent = o.program_in_sync ? "IN SYNC" : "DRIFTED";
-      sync.className = "kpi-val " + (o.program_in_sync ? "ok" : "bad");
+      lastOverview = o;
       $("#side-hash").textContent = (o.baseline_hash || "").slice(0, 30) + "…";
-      const sp = $("#side-integrity"); sp.textContent = o.baseline_integrity;
-      sp.className = "pill " + (o.baseline_integrity === "VALID" ? "ok" : "bad");
-      // -- production-grade panels (additive) --
-      renderRisk(o.risk_score, o.risk_band);
-      renderHealth(o.sites || []);
-      renderRollback(o.rollback || {});
+      const sp = $("#side-integrity");
+      if (sp) { sp.textContent = o.baseline_integrity; sp.className = "pill " + (o.baseline_integrity === "VALID" ? "ok" : "bad"); }
+      updateThreatHealth();
+      renderOverviewCards();
     }).catch(() => {});
+    if (chemAvailable) fetch("/api/site-b/state").then(r => r.json()).then(s => { lastChem = s; renderOverviewCards(); }).catch(() => {});
+  }
+
+  // ---- topbar: view title, threat banner, health indicator ----
+  const VIEW_META = {
+    overview: ["Overview", "Live plant status · impact-ranked detections"],
+    plant: ["Live plant", "SCADA mimic · live process + controller load"],
+    diff: ["Baseline vs current", "Signed L5X · structural + register diff"],
+    alerts: ["Alerts", "Three detection planes · severity ranked"],
+    evidence: ["Evidence log", "Append-only forensic record · who · when · what"],
+    roles: ["Roles & access", "OT/ICS functional roles + monitored scopes"],
+  };
+  function setView(tab) {
+    const m = VIEW_META[tab] || [tab, ""];
+    const t = $("#view-title"), s = $("#view-sub");
+    if (t) t.textContent = m[0];
+    if (s) s.textContent = m[1];
+  }
+  function updateThreatHealth() {
+    const c = (lastOverview && lastOverview.severity_counts) || {};
+    const crit = c.critical || 0, high = c.high || 0, med = c.medium || 0;
+    const banner = $("#threat-banner");
+    if (banner) {
+      const open = crit + high;
+      if (open > 0) {
+        banner.classList.remove("hidden");
+        const cnt = $("#tb-count"); if (cnt) cnt.textContent = open;
+        const latest = events.filter(e => e.severity === "critical" || e.severity === "high").sort((a, b) => b.seq - a.seq)[0];
+        const lt = $("#tb-latest"); if (lt) lt.textContent = latest ? ((latest.details && latest.details.reason) || pretty(latest.type)) : "";
+      } else banner.classList.add("hidden");
+    }
+    const hi = $("#health-ind"), txt = $("#hi-text");
+    if (hi && txt) {
+      let state = "ok", label = "All nominal";
+      if (crit > 0) { state = "crit"; label = "Attention required"; }
+      else if (high > 0) { state = "high"; label = "Elevated"; }
+      else if (med > 0) { state = "med"; label = "Advisory"; }
+      hi.className = "health-ind " + state; txt.textContent = label;
+    }
+  }
+
+  // ---- overview cards: KPIs, site cards, detection planes ----
+  const _val = (v) => v ? (fmt(v.eng) + " " + v.unit) : "—";
+  const _num = (v, u) => (v == null ? "—" : (Math.round(v * 10) / 10) + " " + u);
+
+  function kpiCard(icon, label, val, unit, tone, meterW, sub) {
+    const card = el("div", "kpi ov-kpi");
+    const head = el("div", "kpi-head");
+    head.appendChild(el("span", "kpi-icon tone-" + tone, icon));
+    head.appendChild(el("span", "kpi-label", label));
+    card.appendChild(head);
+    const vrow = el("div", "kpi-valrow");
+    vrow.appendChild(el("span", "kpi-val tone-" + tone, val));
+    if (unit) vrow.appendChild(el("span", "kpi-unit", unit));
+    card.appendChild(vrow);
+    const meter = el("div", "kpi-meter"); const fill = el("i", "tone-" + tone);
+    fill.style.width = Math.max(0, Math.min(100, meterW)) + "%"; meter.appendChild(fill); card.appendChild(meter);
+    card.appendChild(el("div", "kpi-sub", sub));
+    return card;
+  }
+  function renderKpis() {
+    const box = $("#kpi-row"); if (!box) return;
+    const o = lastOverview || {}, c = o.severity_counts || {};
+    const ir = (lastPlant && lastPlant.input_registers) || {};
+    const chemO = (lastChem && lastChem.feed && lastChem.feed.outputs) || {};
+    const chemHold = (lastChem && lastChem.snapshot && lastChem.snapshot.holding_registers) || {};
+    const cards = [];
+    const valid = o.baseline_integrity === "VALID";
+    cards.push(kpiCard("🛡", "Baseline integrity", valid ? "INTACT" : "TAMPERED", "", valid ? "ok" : "bad",
+      valid ? 100 : 12, valid ? "HMAC signature valid" : "signature broken — investigate"));
+    const mw = ir.Generator_MW, rpm = ir.Turbine_Speed;
+    if (mw) cards.push(kpiCard("⚡", "Unit output", fmt(mw.eng), "MW", "accent",
+      mw.eng / 300 * 100, (rpm ? fmt(rpm.eng) + " rpm · " + (rpm.eng / 60).toFixed(2) + " Hz" : "—")));
+    else cards.push(kpiCard("⚡", "Unit output", "—", "MW", "accent", 0, "awaiting plant data"));
+    const pr = chemO.pressure, lvl = chemO.liquid_level, hh = chemHold.Pressure_HH_SP;
+    if (pr != null) { const hhv = hh ? Math.round(hh.eng) : 3000;
+      cards.push(kpiCard("◎", "Reactor pressure", Math.round(pr), "kPa", pr >= hhv ? "bad" : "accent",
+        pr / (hhv * 1.4) * 100, "level " + (lvl != null ? lvl.toFixed(1) : "—") + "% · HH " + hhv));
+    } else cards.push(kpiCard("◎", "Reactor pressure", "—", "kPa", "accent", 0, "site offline"));
+    const crit = c.critical || 0, high = c.high || 0, med = c.medium || 0, open = crit + high + med;
+    cards.push(kpiCard("⚠", "Open detections", String(open), "", open ? (crit ? "bad" : "warn") : "ok",
+      open * 20, crit + " critical · " + high + " high · " + med + " medium"));
+    box.innerHTML = ""; cards.forEach(cN => box.appendChild(cN));
+  }
+  function siteHeader(icon, name, proto, pill, tone, openLabel, onOpen) {
+    const h = el("div", "ov-site-h");
+    h.appendChild(el("span", "ov-site-icon", icon));
+    h.appendChild(el("span", "ov-site-name", name));
+    h.appendChild(el("span", "ov-site-proto mono", proto));
+    h.appendChild(el("span", "ov-site-pill tone-" + tone, pill));
+    const btn = el("button", "ov-open", openLabel); btn.onclick = onOpen; h.appendChild(btn);
+    return h;
+  }
+  function siteRows(rows, alarmKeys) {
+    const g = el("div", "ov-site-rows");
+    rows.forEach(([k, v]) => {
+      const r = el("div", "ov-site-cell");
+      r.appendChild(el("span", "ov-rk", k));
+      r.appendChild(el("span", "ov-rv" + (alarmKeys.indexOf(k) >= 0 ? " alarm" : ""), v));
+      g.appendChild(r);
+    });
+    return g;
+  }
+  function gotoPlant(site) {
+    setSite(site);
+    const nav = document.querySelector('.nav-item[data-tab="plant"]'); if (nav) nav.click();
+  }
+  function renderSiteCards() {
+    const ir = (lastPlant && lastPlant.input_registers) || {};
+    const coils = (lastPlant && lastPlant.coils) || {};
+    const tcard = $("#ov-site-thermal");
+    if (tcard) {
+      const trips = Object.entries(coils).filter(([t, on]) => /_trip$/i.test(t) && on).length;
+      tcard.innerHTML = "";
+      tcard.appendChild(siteHeader("◈", "Thermal power plant", "Modbus TCP :5020 · PLC-01",
+        trips ? "TRIP" : "ONLINE", trips ? "bad" : "ok", "Open live", () => gotoPlant("thermal-pi")));
+      tcard.appendChild(siteRows([
+        ["Turbine", _val(ir.Turbine_Speed)], ["Output", _val(ir.Generator_MW)], ["Main steam", _val(ir.Steam_Pressure)],
+        ["Drum level", _val(ir.Drum_Level)], ["Vibration", _val(ir.Bearing_Vibration)], ["Trips", trips ? (trips + " tripped") : "clear"],
+      ], trips ? ["Trips"] : []));
+    }
+    const ccard = $("#ov-site-chem");
+    if (ccard) {
+      if (!chemAvailable) { ccard.classList.add("hidden"); return; }
+      ccard.classList.remove("hidden");
+      const o = (lastChem && lastChem.feed && lastChem.feed.outputs) || {};
+      const st = (lastChem && lastChem.feed && lastChem.feed.state) || {};
+      const esd = st.e_stop;
+      ccard.innerHTML = "";
+      ccard.appendChild(siteHeader("◎", "Chemical reactor", "Modbus TCP :5021 · GRFICS",
+        esd ? "ESD" : "ONLINE", esd ? "bad" : "ok", "Open live 3D", () => gotoPlant("grfics-chem")));
+      ccard.appendChild(siteRows([
+        ["Pressure", _num(o.pressure, "kPa")], ["Level", _num(o.liquid_level, "%")], ["Feed 1", _num(st.f1_valve_pos, "%")],
+        ["Purge", _num(st.purge_valve_pos, "%")], ["Agitator", esd ? "stopped" : "running"], ["ESD", esd ? "TRIPPED" : "armed"],
+      ], esd ? ["ESD"] : []));
+    }
+  }
+  const PLANE_DEFS = [
+    ["cyber.", "cyber.*", "accent", "L5X structural diff + Modbus register diff on the laptop engine."],
+    ["physical.", "physical.*", "high", "Pi agent: link carrier, ARP allowlist, GPIO enclosure switch."],
+    ["resource.", "resource.*", "warn", "Pi agent: CPU / RAM sampling — DDoS impact signal."],
+  ];
+  function renderPlanes() {
+    const box = $("#ov-planes"); if (!box) return;
+    const vis = events.filter(siteVisible);
+    box.innerHTML = "";
+    PLANE_DEFS.forEach(([prefix, name, tone, desc]) => {
+      const cnt = vis.filter(e => (e.type || "").startsWith(prefix)).length;
+      const row = el("div", "ov-plane");
+      const top = el("div", "ov-plane-top");
+      top.appendChild(el("span", "ov-plane-name tone-" + tone, name));
+      top.appendChild(el("span", "ov-plane-cnt tone-" + tone, String(cnt)));
+      row.appendChild(top);
+      row.appendChild(el("div", "ov-plane-desc", desc));
+      box.appendChild(row);
+    });
+  }
+  function ovFeedRow(e) {
+    const row = el("div", "ovf-row" + (e.severity === "critical" ? " critical" : ""));
+    const s = el("div"); s.appendChild(el("span", "sev " + e.severity, e.severity)); row.appendChild(s);
+    row.appendChild(el("div", "cell-time", timeOf(e)));
+    const det = el("div");
+    det.appendChild(el("div", "det-title", (e.details && e.details.reason) || pretty(e.type)));
+    if (e.details && e.details.command) det.appendChild(el("div", "det-detail", e.details.command));
+    row.appendChild(det);
+    const mt = el("div");
+    if (e.mitre && e.mitre.technique_id) {
+      mt.appendChild(el("div", "mitre-id", e.mitre.technique_id));
+      if (e.mitre.technique_name) mt.appendChild(el("div", "mitre-name", e.mitre.technique_name));
+    }
+    row.appendChild(mt);
+    return row;
+  }
+  function renderOverviewCards() {
+    if (activeTab !== "overview") return;
+    renderKpis(); renderSiteCards(); renderPlanes();
+    const o = lastOverview || {};
+    const valid = o.baseline_integrity === "VALID";
+    const dot = $("#ov-lock-dot"), lt = $("#ov-lock-text"), lh = $("#ov-lock-hash");
+    if (dot) dot.className = "ov-lock-dot" + (valid ? "" : " bad");
+    if (lt) { lt.textContent = valid ? "Signature valid" : "Signature broken"; lt.style.color = valid ? "var(--good)" : "var(--crit)"; }
+    if (lh) lh.textContent = "HMAC-SHA256 · " + (o.baseline_hash || "").replace(/^sha256:/, "").slice(0, 16);
+    const vis = events.filter(siteVisible);
+    const crit = vis.filter(e => e.severity === "critical").length;
+    const sum = $("#ov-feed-sum"); if (sum) sum.textContent = vis.length ? (vis.length + " open · " + crit + " critical") : "no alerts";
+    const feed = $("#ov-alerts");
+    if (feed) {
+      feed.innerHTML = "";
+      sortedEvents(vis).slice(0, 5).forEach(e => feed.appendChild(ovFeedRow(e)));
+      if (!vis.length) feed.appendChild(el("div", "dtbl-empty", "No drift. Live program and registers match the signed baseline."));
+    }
   }
 
   // ---- risk score / system health / rollback (production-grade) ----
@@ -264,13 +469,15 @@
   }
 
   function pollPlant() {
-    fetch("/api/plant").then(r => r.json()).then(p => renderPlant(p)).catch(() => {});
+    if (paused) return;
+    fetch("/api/plant").then(r => r.json()).then(p => { lastPlant = p; renderPlant(p); renderOverviewCards(); }).catch(() => {});
   }
 
   // ---- host telemetry (CPU / RAM / temp) — makes the DDoS impact visible ----
   const TLM_MAX = 40;                 // ~60 s of history at the 1.5 s cadence
   const tlmCpu = [];
   function pollTelemetry() {
+    if (paused) return;
     fetch("/api/telemetry").then(r => r.json()).then(t => renderTelemetry(t)).catch(() => {});
   }
   function tlmBand(v, warn, crit) { return v == null ? "" : v >= crit ? " crit" : v >= warn ? " warn" : ""; }
@@ -428,14 +635,10 @@
       list.forEach(e => box.appendChild(evidenceTableRow(e)));
       if (!list.length) box.appendChild(el("div", "dtbl-empty", "No evidence recorded yet."));
     }
-    // overview recent
-    const ov = $("#ov-alerts"); if (ov) {
-      ov.innerHTML = "";
-      sortedEvents(vis).slice(0, 6).forEach(e => ov.appendChild(alertRow(e, false)));
-      if (!vis.length) ov.appendChild(el("div", "muted tiny", "No drift detected — plant nominal."));
-    }
     renderTimeline(vis);
     flagMimic();
+    updateThreatHealth();
+    renderOverviewCards();
   }
 
   function renderPlant(p) {

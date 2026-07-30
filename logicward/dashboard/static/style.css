@@ -249,6 +249,84 @@ html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 .ev-what{font-size:12.5px;color:var(--accent);font-weight:500}
 .ev-id{font-family:var(--mono);font-size:10.5px;color:var(--muted-2)}
 
+/* ── Vigilo topbar: view title, threat banner, health, pill site-tabs ──────── */
+.topbar-head{min-width:0;flex:0 1 auto;overflow:hidden;display:flex;flex-direction:column;gap:2px}
+.view-title{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.view-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:14px;flex:none}
+.topbar-div{width:1px;height:30px;background:var(--border)}
+.st-dot{width:6px;height:6px;border-radius:50%;flex:none}
+.threat-banner{display:flex;align-items:center;gap:11px;padding:6px 12px;border-radius:8px;
+  background:var(--crit-bg);border:1px solid var(--crit-line);flex:none;max-width:330px}
+.threat-banner .tb-icon{width:22px;height:22px;flex:none;border-radius:50%;background:var(--crit);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;animation:lwPulse 1.6s infinite}
+.tb-text{min-width:0}
+.tb-kicker{font-size:9.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--crit);display:flex;align-items:center;gap:7px}
+.tb-count{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--crit);color:#fff}
+.tb-latest{font-size:11.5px;font-weight:500;color:var(--crit);max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.health-ind{display:flex;align-items:center;gap:8px}
+.health-ind .hi-dot{width:7px;height:7px;border-radius:50%;background:var(--good);animation:lwPulse 2s infinite}
+.hi-text{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.health-ind.crit .hi-dot{background:var(--crit)} .health-ind.crit .hi-text{color:var(--crit)}
+.health-ind.high .hi-dot{background:var(--serious)} .health-ind.high .hi-text{color:var(--serious)}
+.health-ind.med .hi-dot{background:var(--warn)} .health-ind.med .hi-text{color:var(--warn)}
+@media(max-width:1100px){.threat-banner{display:none}}
+
+/* ── Overview: icon KPI cards, site cards, detection planes, feed ──────────── */
+.ov-kpi{display:flex;flex-direction:column;gap:9px}
+.kpi-head{display:flex;align-items:center;gap:9px}
+.kpi-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--accent-soft);color:var(--accent)}
+.kpi-icon.tone-ok{background:var(--good-bg);color:var(--good)}
+.kpi-icon.tone-bad{background:var(--crit-bg);color:var(--crit)}
+.kpi-icon.tone-warn{background:var(--warn-bg);color:var(--warn)}
+.kpi-valrow{display:flex;align-items:baseline;gap:6px}
+.kpi-val{font-family:var(--display);font-size:27px;font-weight:600;letter-spacing:-.02em;color:var(--ink)}
+.kpi-val.tone-ok{color:var(--good)} .kpi-val.tone-bad{color:var(--crit)} .kpi-val.tone-warn{color:var(--serious)} .kpi-val.tone-accent{color:var(--accent)}
+.kpi-unit{font-size:12px;font-weight:500;color:var(--muted-2)}
+.kpi-meter{height:4px;border-radius:4px;background:var(--hair);overflow:hidden}
+.kpi-meter i{display:block;height:100%;width:0;border-radius:4px;background:var(--accent)}
+.kpi-meter i.tone-ok{background:var(--good)} .kpi-meter i.tone-bad{background:var(--crit)} .kpi-meter i.tone-warn{background:var(--serious)} .kpi-meter i.tone-accent{background:var(--accent)}
+.kpi-sub{font-size:11.5px;color:var(--muted)}
+.ov-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(262px,340px);gap:16px}
+@media(max-width:1000px){.ov-main{grid-template-columns:1fr}}
+.ov-sites{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ov-site-h{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--hair);flex-wrap:wrap}
+.ov-site-icon{width:28px;height:28px;border-radius:7px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;flex:none}
+.ov-site-name{font-family:var(--display);font-weight:600;font-size:14px}
+.ov-site-proto{font-size:10px;color:var(--muted-2)}
+.ov-site-pill{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;padding:3px 9px;border-radius:20px}
+.ov-site-pill.tone-ok{background:var(--good-bg);color:var(--good);border:1px solid var(--good-line)}
+.ov-site-pill.tone-bad{background:var(--crit-bg);color:var(--crit);border:1px solid var(--crit-line)}
+.ov-open{margin-left:auto;cursor:pointer;font-size:12px;font-weight:600;padding:6px 12px;border-radius:7px;background:var(--accent);color:#fff;border:0;white-space:nowrap}
+.ov-open:hover{background:var(--accent-ink)}
+.ov-site-rows{padding:8px 18px 14px;display:grid;grid-template-columns:repeat(3,1fr);gap:0 22px}
+@media(max-width:620px){.ov-site-rows{grid-template-columns:repeat(2,1fr)}}
+.ov-site-cell{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:9px 0;border-bottom:1px solid var(--hair)}
+.ov-rk{font-size:11.5px;color:var(--muted)}
+.ov-rv{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink)}
+.ov-rv.alarm{color:var(--crit)}
+.ov-planes-card{display:flex;flex-direction:column}
+.ov-planes-card .card-h .ov-live-dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--good);animation:lwPulse 2s infinite}
+.ov-plane{padding:12px 16px;border-bottom:1px solid var(--hair);display:flex;flex-direction:column;gap:5px}
+.ov-plane-top{display:flex;align-items:baseline;gap:8px}
+.ov-plane-name{font-family:var(--mono);font-size:11.5px;font-weight:600;flex:1}
+.ov-plane-cnt{font-size:11px;font-weight:600}
+.ov-plane-name.tone-accent,.ov-plane-cnt.tone-accent{color:var(--accent)}
+.ov-plane-name.tone-high,.ov-plane-cnt.tone-high{color:var(--serious)}
+.ov-plane-name.tone-warn,.ov-plane-cnt.tone-warn{color:var(--warn)}
+.ov-plane-desc{font-size:11px;color:var(--muted);line-height:1.45}
+.ov-baselock{padding:13px 16px;display:flex;flex-direction:column;gap:7px}
+.ov-kicker{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.ov-lock-row{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
+.ov-lock-dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+.ov-lock-dot.bad{background:var(--crit)}
+.ov-lock-hash{font-size:10px;color:var(--muted-2);line-height:1.5}
+.ov-feed-card .card-h .ov-viewall{margin-left:auto;font-size:12px;font-weight:500;color:var(--accent);cursor:pointer}
+.ovf-row{display:grid;grid-template-columns:88px 74px minmax(0,1fr) 190px;gap:12px;align-items:baseline;padding:12px 18px;border-bottom:1px solid var(--hair)}
+.ovf-row:last-child{border-bottom:0}
+.ovf-row.critical{background:var(--crit-bg)}
+
 /* ── overview: risk / timeline / health / rollback ─────────────────────────── */
 .risk-row{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px}
 @media(max-width:1000px){.risk-row{grid-template-columns:1fr}}
@@ -322,7 +400,8 @@ html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 /* ── multi-site: selector, chips, chemical panel ───────────────────────────── */
 .site-tabs{display:flex;gap:3px;background:var(--sunken);border:1px solid var(--border);border-radius:8px;padding:3px}
 .site-tab{border:0;background:transparent;font-family:var(--sans);font-size:12px;font-weight:500;
-  color:var(--muted);padding:6px 11px;border-radius:6px;cursor:pointer;white-space:nowrap}
+  color:var(--muted);padding:6px 11px;border-radius:6px;cursor:pointer;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:7px}
 .site-tab:hover{color:var(--ink)}
 .site-tab.active{background:var(--surface);color:var(--accent-ink);font-weight:600;box-shadow:var(--shadow)}
 .site-chip{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px;letter-spacing:.06em}

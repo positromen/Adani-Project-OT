@@ -37,51 +37,49 @@
 
   <main class="content">
     <header class="topbar">
-      <div class="topbar-title"><span id="live-dot" class="live-dot"></span> <span id="site-title">Thermal Power Plant</span> — <span id="controller">—</span></div>
-      <div class="site-tabs" id="siteTabs" title="Monitored sites"></div>
-      <div class="sev-chips">
-        <span class="chip crit">CRIT <b id="c-crit">0</b></span>
-        <span class="chip high">HIGH <b id="c-high">0</b></span>
-        <span class="chip med">MED <b id="c-med">0</b></span>
+      <div class="topbar-head">
+        <div class="view-title" id="view-title">Overview</div>
+        <div class="view-sub" id="view-sub">Live plant status</div>
       </div>
-      <div class="topbar-actions">
-        <button class="btn" data-cap="baseline" id="btn-lock">Re-lock baseline</button>
-        <button class="btn" data-cap="baseline" id="btn-restore">Restore baseline</button>
-        <button class="btn danger" data-cap="ack_all" id="btn-clear-logs">Acknowledge All</button>
-        <a class="btn primary" data-cap="evidence" id="btn-pdf" href="/api/evidence/report.pdf">Export PDF</a>
+      <div class="site-tabs" id="siteTabs" title="Monitored sites"></div>
+      <div class="topbar-right">
+        <div class="threat-banner hidden" id="threat-banner">
+          <span class="tb-icon">!</span>
+          <div class="tb-text">
+            <div class="tb-kicker">Active drift detected <span class="tb-count" id="tb-count">0</span></div>
+            <div class="tb-latest" id="tb-latest">—</div>
+          </div>
+        </div>
+        <div class="topbar-div"></div>
+        <div class="health-ind" id="health-ind"><span class="hi-dot"></span><span class="hi-text" id="hi-text">All nominal</span></div>
+        <button class="btn" id="btn-pause">Pause</button>
         <button class="theme-toggle" id="theme-toggle" title="Toggle light / dark" aria-label="Toggle theme">☾</button>
       </div>
     </header>
 
     <!-- Overview -->
     <section id="tab-overview" class="panel">
-      <div class="risk-row">
-        <div class="card risk-card" id="risk-card">
-          <div class="risk-score" id="risk-score">—</div>
-          <div class="risk-meta">
-            <div class="risk-band" id="risk-band">—</div>
-            <div class="risk-caption">Platform risk score</div>
-            <div class="risk-bar"><div id="risk-bar-fill"></div></div>
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="ov-main">
+        <div class="ov-sites">
+          <div class="card ov-site" id="ov-site-thermal"></div>
+          <div class="card ov-site" id="ov-site-chem"></div>
+        </div>
+        <div class="card ov-planes-card">
+          <div class="card-h">Detection planes <span class="ov-live-dot"></span></div>
+          <div id="ov-planes"></div>
+          <div class="ov-baselock">
+            <div class="ov-kicker">Baseline lock</div>
+            <div class="ov-lock-row"><span class="ov-lock-dot" id="ov-lock-dot"></span><span id="ov-lock-text">—</span></div>
+            <div class="ov-lock-hash mono" id="ov-lock-hash">—</div>
           </div>
         </div>
-        <div class="card timeline-card">
-          <div class="card-h">Attack timeline <span class="muted tiny">most recent → now</span></div>
-          <div class="timeline" id="timeline"><div class="muted tiny" style="padding:14px">No events yet.</div></div>
+      </div>
+      <div class="card ov-feed-card">
+        <div class="card-h">Severity-ranked alert feed <span class="muted tiny" id="ov-feed-sum">—</span>
+          <a class="ov-viewall" id="ov-viewall">View all →</a>
         </div>
-      </div>
-      <div class="kpi-row">
-        <div class="kpi"><div class="kpi-label">Baseline integrity</div><div class="kpi-val" id="kpi-integrity">—</div></div>
-        <div class="kpi"><div class="kpi-label">Program vs baseline</div><div class="kpi-val" id="kpi-sync">—</div></div>
-        <div class="kpi"><div class="kpi-label">Critical alerts</div><div class="kpi-val" id="kpi-crit">0</div></div>
-        <div class="kpi"><div class="kpi-label">Total events</div><div class="kpi-val" id="kpi-total">0</div></div>
-      </div>
-      <div class="two-col">
-        <div class="card"><div class="card-h">Plant at a glance</div><div id="ov-plant" class="mini-plant"></div></div>
-        <div class="card"><div class="card-h">Recent alerts</div><div id="ov-alerts" class="feed"></div></div>
-      </div>
-      <div class="two-col">
-        <div class="card"><div class="card-h">System health — monitored sites</div><div id="site-health" class="health-grid"></div></div>
-        <div class="card"><div class="card-h">Baseline &amp; rollback status</div><div id="rollback-status" class="rollback"></div></div>
+        <div id="ov-alerts" class="feed"></div>
       </div>
     </section>
 
@@ -260,6 +258,10 @@
         <div class="card-h">
           Baseline vs running program
           <span id="diff-summary" class="diff-summary"></span>
+          <span class="hdr-actions">
+            <button class="btn" data-cap="baseline" id="btn-restore">Restore baseline</button>
+            <button class="btn primary" data-cap="baseline" id="btn-lock">Re-lock baseline</button>
+          </span>
         </div>
         <div class="diff-hashes mono tiny">
           <span>baseline <b id="diff-bhash">—</b></span>
