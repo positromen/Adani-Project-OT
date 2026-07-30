@@ -23,13 +23,142 @@ The PLC "program" is a real **Rockwell L5X** file — **data to baseline and dif
 - **Evidence log (SIEM-ready JSONL) + signed PDF** forensic report.
 - **RBAC dashboard** — Operator / Engineer / SOC Analyst, with role-gated response actions.
 
-## Split architecture
+## System architecture
 
+LogicWard runs across **three hosts**. The attacker only ever touches the Pi — the monitor observes it remotely, mirroring a real-world OT deployment.
+
+```mermaid
+graph TB
+    %% ── Attacker ──────────────────────────────────────────────────
+    subgraph ATK ["🔴 ATTACKER MACHINE (Threat Actor)"]
+        direction TB
+        A1["attacks.py\nAttack Toolkit"]
+        A2["demo_sequence.py\nScripted Demo"]
+    end
+
+    %% ── Raspberry Pi ──────────────────────────────────────────────
+    subgraph PI ["🟦 RASPBERRY PI — OT Zone (The Target PLC)"]
+        direction TB
+        MODBUS["Modbus TCP Server :502\nHolding Registers · Coils\nLive process values"]
+        LOGIC["Logic Store API :8081\nGET /program\nPOST /program/download"]
+        LIVE["live.L5X\nRunning PLC Program File"]
+        AGENT["Edge Sensor Agent"]
+
+        subgraph SENSORS ["Hardware Sensors"]
+            direction LR
+            S1["link_watch\nNIC carrier"]
+            S2["arp_watch\nMAC allow-list"]
+            S3["gpio_tamper\nCabinet door"]
+            S4["resource\nCPU · RAM"]
+            S5["fim_watch\nFile integrity"]
+        end
+
+        LOGIC --- LIVE
+        AGENT --- SENSORS
+    end
+
+    %% ── Laptop ────────────────────────────────────────────────────
+    subgraph LAPTOP ["🟩 LAPTOP — Secure Monitoring Zone (The Defender)"]
+        direction TB
+
+        subgraph ENGINE ["Detection Engine"]
+            direction TB
+            DRIFT["Drift Engine\nL5X structural diff\nModbus register diff"]
+            BASELINE["HMAC-SHA256\nSigned Baseline\nApproved L5X + register snapshot"]
+            FIM_BL["FIM Watchdog\nBaseline file monitor"]
+            DRIFT <--> BASELINE
+            FIM_BL -.-> BASELINE
+        end
+
+        subgraph BUS ["The Event Bus — Central Spine"]
+            direction TB
+            VALIDATE["1. Schema Validation\nUUID · Timestamp · Dedup"]
+            ENRICH["2. Severity Scoring\nBase weight × safety multiplier"]
+            MITRE["3. MITRE ATT&CK for ICS\nRule-based technique mapping"]
+            VALIDATE --> ENRICH --> MITRE
+        end
+
+        subgraph OUTPUTS ["Fan-Out Destinations"]
+            direction TB
+            EVIDENCE["Evidence Log\nAppend-only JSONL\nSIEM-ready"]
+            DASHBOARD["Flask SOC Dashboard\nRBAC · Live Mimic · Diff\nAlert Feed · PDF Export"]
+            RESPONSE["Response Engine\nQuarantine · Safe State\nBaseline Restore"]
+        end
+
+        ENGINE -->|"Emits cyber events"| BUS
+        BUS -->|"Writes immutable audit trail"| EVIDENCE
+        BUS -->|"Pushes live alerts"| DASHBOARD
+        BUS -->|"Triggers automated actions"| RESPONSE
+    end
+
+    %% ── Human Users ───────────────────────────────────────────────
+    USERS["👤 Human Operators\nOperator · Engineer\nSOC Analyst · CISO"]
+    DASHBOARD <-->|"View & respond\n(role-gated)"| USERS
+
+    %% ── Cross-host flows ─────────────────────────────────────────
+    A1 -->|"Malicious Modbus writes\nFC06 · FC05 · FC16"| MODBUS
+    A1 -->|"POST /program/download\nTampered L5X"| LOGIC
+    A1 -->|"DDoS flood\nRogue ARP"| PI
+
+    DRIFT -->|"Continuous poll\nModbus :502 read"| MODBUS
+    DRIFT -->|"GET /program\nPull live L5X"| LOGIC
+    AGENT -->|"POST /api/ingest\nPhysical & resource events\n(token-authenticated)"| BUS
+
+    %% ── Styling ───────────────────────────────────────────────────
+    style ATK fill:#2d1117,stroke:#f85149,stroke-width:2px,color:#f85149
+    style PI fill:#0d1117,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9
+    style LAPTOP fill:#0d1117,stroke:#3fb950,stroke-width:2px,color:#c9d1d9
+    style ENGINE fill:#161b22,stroke:#8b949e,color:#c9d1d9
+    style BUS fill:#161b22,stroke:#d29922,stroke-width:2px,color:#c9d1d9
+    style OUTPUTS fill:#161b22,stroke:#8b949e,color:#c9d1d9
+    style SENSORS fill:#161b22,stroke:#8b949e,color:#c9d1d9
 ```
-Raspberry Pi          Modbus PLC + logic-store program endpoints + sensor agent (POSTs events)
-Laptop                event bus + drift engine + baseline + MITRE + SOC dashboard (polls Pi, ingests events)
-Attacker (2nd box)    Modbus writes · POST /program/download · DDoS flood · rogue ARP
+
+### Event & log flow
+
+Every detection — whether born on the Pi or the laptop — follows the same path through the event bus before reaching its final destination.
+
+```mermaid
+graph LR
+    %% ── Origins ───────────────────────────────────────────────────
+    subgraph ORIGINS ["Phase 1 · Where Logs Are Born"]
+        direction TB
+        O_PI["🔵 Edge Sensor Agent\n(Raspberry Pi)\n─────────────────\nphysical.link_down\nphysical.rogue_device\nphysical.enclosure_open\nresource.cpu_spike\nresource.mem_spike\ncyber.program_file_modified"]
+        O_DRIFT["🟢 Drift Engine\n(Laptop)\n─────────────────\ncyber.setpoint_drift\ncyber.logic_inversion\ncyber.condition_stripping\ncyber.coil_hijack\ncyber.rung_injection\ncyber.register_change"]
+    end
+
+    %% ── The Bus ───────────────────────────────────────────────────
+    subgraph BRAIN ["Phase 2 · The Event Bus (Enrichment)"]
+        direction TB
+        B1["🔷 Schema Validation\nUUID assignment · dedup by event_id"]
+        B2["🔶 Severity Scoring\nscore = base_weight × safety_multiplier\n→ info · low · medium · high · critical"]
+        B3["🔴 MITRE ATT&CK for ICS Mapping\nTactic · Technique ID · Technique Name\n+ attacker identity enrichment"]
+        B1 --> B2 --> B3
+    end
+
+    %% ── Destinations ──────────────────────────────────────────────
+    subgraph DEST ["Phase 3 · Where Logs Go"]
+        direction TB
+        D1["📁 Evidence Log\nAppend-only JSONL file\n+ signed PDF forensic report\n(SIEM-ready for Wazuh/Splunk)"]
+        D2["📊 SOC Dashboard\nLive alert feed · Plant mimic\nProgram diff · Severity chips\n(polls via GET /api/events)"]
+        D3["⚡ Response Engine\nAuto-quarantine device\nRecommend safe state\nRestore baseline"]
+    end
+
+    %% ── Arrows ────────────────────────────────────────────────────
+    O_PI -->|"HTTP POST /api/ingest\n(token-authenticated, batched,\nretry with backoff)"| B1
+    O_DRIFT -->|"In-process bus.emit()\n(direct, same machine)"| B1
+
+    B3 -->|"Sink 1\nPermanent record"| D1
+    B3 -->|"Sink 2\nLive UI update"| D2
+    B3 -->|"Sink 3\nAutomated action"| D3
+
+    %% ── Styling ───────────────────────────────────────────────────
+    style ORIGINS fill:#161b22,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9
+    style BRAIN fill:#161b22,stroke:#d29922,stroke-width:2px,color:#c9d1d9
+    style DEST fill:#161b22,stroke:#3fb950,stroke-width:2px,color:#c9d1d9
 ```
+
+### Deployment modes
 
 Runs single-machine by default (an **embedded plant**); set `LOGICWARD_EMBED_PLANT=0` for the real Pi split — **verified end-to-end on a Raspberry Pi 4 ↔ laptop over Wi-Fi** (cyber detection + agent event-forwarding both live).
 
