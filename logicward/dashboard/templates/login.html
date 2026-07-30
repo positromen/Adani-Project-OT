@@ -10,11 +10,8 @@
 <body class="login-body">
   <div class="login-card">
     <div class="login-brand">
-      <img class="brand-logo" src="{{ url_for('static', filename='img/vigilo-mark.svg') }}" alt="Vigilo">
-      <div>
-        <div class="brand-name">VIGILO</div>
-        <div class="brand-sub">OT Drift-Detection Appliance</div>
-      </div>
+      <img class="login-logo" src="{{ url_for('static', filename='img/vigilo-logo.png') }}"
+           alt="VIGILO — PLC Logic Drift & Unauthorized Change Detection">
     </div>
     <form method="post" class="login-form">
       {% if error %}<div class="login-error">{{ error }}</div>{% endif %}

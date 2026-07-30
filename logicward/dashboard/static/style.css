@@ -59,7 +59,8 @@ b{font-weight:700}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;border:3px solid transparent;background-clip:content-box}
 
 /* ── brand ─────────────────────────────────────────────────────────────────── */
-.brand-logo{width:36px;height:36px;flex:none;display:block;object-fit:contain}
+.brand-logo{height:40px;width:auto;max-width:48px;flex:none;display:block;object-fit:contain}
+.login-logo{display:block;width:100%;max-width:236px;height:auto;margin:0 auto}
 .brand-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);
   display:inline-flex;align-items:center;justify-content:center;flex:none}
 .brand-mark span{width:12px;height:12px;border-radius:3px;background:#fff}
@@ -68,11 +69,12 @@ b{font-weight:700}
   text-transform:uppercase;white-space:nowrap;margin-top:2px}
 
 /* ── login ─────────────────────────────────────────────────────────────────── */
-.login-body{min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:var(--page);background-image:radial-gradient(900px 480px at 50% -12%,var(--accent-soft),transparent 62%)}
-.login-card{background:var(--surface);width:372px;border:1px solid var(--border);border-radius:16px;padding:28px;
+.login-body{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--page) url("img/vigilo-bg.png") center/cover no-repeat fixed}
+.login-body::after{content:"";position:fixed;inset:0;background:var(--page);opacity:.6;pointer-events:none;z-index:0}
+.login-card{position:relative;z-index:1;background:var(--surface);width:372px;border:1px solid var(--border);border-radius:16px;padding:28px;
   box-shadow:var(--shadow-lg)}
-.login-brand{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.login-brand{display:flex;justify-content:center;margin-bottom:20px}
 .login-form{display:flex;flex-direction:column;gap:12px}
 .login-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);font-weight:600}
 .login-form input{padding:10px 12px;border:1px solid var(--border);border-radius:9px;font-size:14px;
@@ -98,6 +100,9 @@ b{font-weight:700}
 
 /* ── app shell ─────────────────────────────────────────────────────────────── */
 .app{display:flex;min-height:100vh}
+.app-bg{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:url("img/vigilo-bg.png") center/cover no-repeat;opacity:.08}
+html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 .sidebar{width:244px;flex:none;background:var(--surface);border-right:1px solid var(--border);box-shadow:var(--shadow);
   color:var(--ink);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:20}
 .brand{display:flex;gap:11px;align-items:center;height:64px;flex:none;padding:0 20px;border-bottom:1px solid var(--hair)}
