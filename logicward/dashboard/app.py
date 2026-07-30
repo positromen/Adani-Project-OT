@@ -534,7 +534,7 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
 
 def main() -> None:
     app = create_app()
-    print("LogicWard SOC dashboard")
+    print("Vigilo SOC dashboard")
     print(f"  http://0.0.0.0:{config.INGEST_PORT}/   (login: soc/soc123)")
     app.run(host=config.INGEST_HOST, port=config.INGEST_PORT, threaded=True)
 

@@ -30,7 +30,7 @@ pids=()
 cleanup() { echo; echo "stopping…"; kill "${pids[@]}" 2>/dev/null || true; exit 0; }
 trap cleanup INT TERM
 
-echo "LogicWard Pi services  |  ingest -> ${LOGICWARD_INGEST_URL}  |  iface ${IFACE}"
+echo "Vigilo Pi services  |  ingest -> ${LOGICWARD_INGEST_URL}  |  iface ${IFACE}"
 python -m logicward.plant.modbus_server > logs/modbus.log  2>&1 & pids+=($!); echo "  modbus_server  pid $! (:5020)  -> logs/modbus.log"
 python -m logicward.plant.logic_store   > logs/program.log 2>&1 & pids+=($!); echo "  logic_store    pid $! (:8081)  -> logs/program.log"
 sleep 1

@@ -282,6 +282,7 @@ html[data-theme="dark"] .app-bg{opacity:.05;filter:saturate(.6) brightness(.62)}
 
 /* attack-origin category chip + filter (external / internal / mistake) */
 .category-chip{display:inline-block;margin-top:4px;font-family:var(--mono);font-size:8.5px;font-weight:700;letter-spacing:.06em;padding:2px 7px;border-radius:20px;border:1px solid transparent}
+.det-title .category-chip{margin-top:0;margin-left:6px;vertical-align:middle}
 .category-chip.external{background:var(--crit-bg);color:var(--crit);border-color:var(--crit-line)}
 .category-chip.internal{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}
 .category-chip.mistake{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-line)}

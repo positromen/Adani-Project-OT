@@ -80,7 +80,7 @@ def run(pause: float = 3.5) -> None:
     atk = Attacker("127.0.0.1", modbus_port=dash.plant.port,
                    program_base=f"http://127.0.0.1:{config.PROGRAM_PORT}")
 
-    print(f"\n{C['b']}LogicWard live demo{C['x']}")
+    print(f"\n{C['b']}Vigilo live demo{C['x']}")
     print(f"  Dashboard : {C['h']}http://localhost:{config.INGEST_PORT}/{C['x']}  (login soc/soc123)")
     print(f"  {C['m']}Open it, then watch Alerts + Program Diff as the attack unfolds.{C['x']}")
     time.sleep(max(pause, 5))
@@ -152,7 +152,7 @@ def run(pause: float = 3.5) -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="LogicWard scripted stage demo")
+    p = argparse.ArgumentParser(description="Vigilo scripted stage demo")
     p.add_argument("--fast", action="store_true", help="quick pacing (flow smoke)")
     args = p.parse_args()
     run(pause=1.0 if args.fast else 3.5)

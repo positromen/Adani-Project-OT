@@ -65,9 +65,9 @@ Dashboard logins (roles gate what's visible/actionable, enforced server-side):
 **Tests** — no pytest. Each suite is a standalone script printing `RESULT: N/N checks passed`,
 non-zero exit on failure:
 ```bash
-python -m logicward.tests.smoke_drift    # one of: bus l5x plant drift agent dashboard attacker
+python -m logicward.tests.smoke_drift    # one of: bus l5x plant drift agent dashboard attacker grfics multisite classify
 ```
-Run all (98 checks): loop `for t in bus l5x plant drift agent dashboard attacker; do python -m logicward.tests.smoke_$t; done`.
+Run all (183 checks): loop `for t in bus l5x plant drift agent dashboard attacker grfics multisite classify; do python -m logicward.tests.smoke_$t; done`.
 
 ---
 
@@ -221,7 +221,8 @@ matching ICS technique) — never fabricate an ID.
 
 Suites are standalone scripts (not unit tests): they spin up **real** servers on ephemeral ports and
 exercise real HTTP paths. Each prints `RESULT: N/N checks passed` and exits non-zero on failure. The
-full set is **98 checks** (bus 15, l5x 16, plant 14, drift 18, agent 10, dashboard 15, attacker 10).
+full set is **183 checks** (bus 15, l5x 16, plant 14, drift 18, agent 11, dashboard 20, attacker 10,
+grfics 39, multisite 20, classify 20).
 When you add a detector/mutation/sensor, extend the matching suite and keep the total honest.
 
 ---

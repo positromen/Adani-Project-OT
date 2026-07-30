@@ -39,10 +39,10 @@ python -m logicward.tests.smoke_bus        # one of: bus l5x plant drift agent d
 
 Run all (there's no aggregator; loop them):
 ```bash
-for t in bus l5x plant drift agent dashboard attacker; do python -m logicward.tests.smoke_$t; done
+for t in bus l5x plant drift agent dashboard attacker grfics multisite classify; do python -m logicward.tests.smoke_$t; done
 ```
 
-Suites spin up real servers on ephemeral ports and exercise real HTTP paths (they are integration-style, not unit tests). The full set is **98 checks**. When you add a detector/mutation, extend the matching suite and keep the printed total honest.
+Suites spin up real servers on ephemeral ports and exercise real HTTP paths (they are integration-style, not unit tests). The full set is **183 checks** across 10 suites (adds `grfics`, `multisite`, `classify` beyond the seven above). When you add a detector/mutation, extend the matching suite and keep the printed total honest.
 
 ### Docs
 

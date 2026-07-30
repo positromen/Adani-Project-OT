@@ -25,7 +25,7 @@ if ($OpenChemToLan) {
   $env:LOGICWARD_GRFICS_MODBUS_HOST = "0.0.0.0"   # expose Site B to the attacker laptop
 }
 
-Write-Host "LogicWard SOC dashboard" -ForegroundColor Cyan
+Write-Host "Vigilo SOC dashboard" -ForegroundColor Cyan
 Write-Host "  URL      : http://localhost:8080/   (login soc/soc123)"
 Write-Host "  Reading  : PLC at $PiHost  (Modbus :5020, program :8081)"
 Write-Host "  Ingest   : POST http://<this-laptop>:8080/api/ingest  (Pi agent -> here)"

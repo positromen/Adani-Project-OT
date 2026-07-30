@@ -34,7 +34,7 @@ param(
   [int]$Port = 9090
 )
 
-Write-Host "LogicWard ATTACKER CONSOLE (2nd laptop)" -ForegroundColor Red
+Write-Host "Vigilo ATTACKER CONSOLE (2nd laptop)" -ForegroundColor Red
 Write-Host "  Console       : http://localhost:$Port/"
 Write-Host "  Thermal (Pi)  : $PiHost   (Modbus :5020, program :8081, writes :5024)"
 Write-Host "  Chemical (3D) : $SocHost  (Site B Modbus :5021 on the SOC laptop)"

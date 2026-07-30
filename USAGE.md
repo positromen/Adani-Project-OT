@@ -312,16 +312,19 @@ against the live ATT&CK-for-ICS matrix; see [DESIGN.md §6.2](DESIGN.md).
 
 ## 10. Verification — the test suites
 
-Seven self-checking smoke suites, **98/98 checks**:
+Ten self-checking smoke suites, **183/183 checks**:
 
 ```bash
 python -m logicward.tests.smoke_bus         # 15/15  event bus, ingest, poll, evidence
 python -m logicward.tests.smoke_l5x         # 16/16  L5X parse/canonicalize/hash
 python -m logicward.tests.smoke_plant       # 14/14  Modbus PLC + program endpoints
 python -m logicward.tests.smoke_drift       # 18/18  baseline HMAC + all 6 mutations
-python -m logicward.tests.smoke_agent       # 10/10  sensors + FIM + agent wiring
-python -m logicward.tests.smoke_dashboard   # 15/15  RBAC, views, diff, PDF
+python -m logicward.tests.smoke_agent       # 11/11  sensors + FIM + agent wiring
+python -m logicward.tests.smoke_dashboard   # 20/20  RBAC, views, diff, PDF, telemetry
 python -m logicward.tests.smoke_attacker    # 10/10  attacker -> detection
+python -m logicward.tests.smoke_grfics      # 39/39  chemical Site B plant + attacks
+python -m logicward.tests.smoke_multisite   # 20/20  unified two-site SOC + console
+python -m logicward.tests.smoke_classify    # 20/20  attack categorization (ext/int/mistake)
 ```
 
 Each prints `RESULT: N/N checks passed` and exits non-zero on any failure.

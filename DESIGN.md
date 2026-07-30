@@ -496,11 +496,12 @@ logicward/
 | **4** | `plant/` thermal Modbus server + `ThermalPlant_baseline.L5X` + program endpoints; `engine/l5x` | ✅ `smoke_plant` 14/14, `smoke_l5x` 16/16 |
 | **5** | `engine/baseline.py` (HMAC) + `engine/drift.py` | ✅ `smoke_drift` 18/18 (all 6 mutations) |
 | **6** | `engine/mitre_map.py` (verified) + `engine/response.py` + `l5x_diff` | ✅ folded into suites |
-| **7** | `dashboard/` (RBAC, live view, GitHub diff, alert feed, evidence, PDF) | ✅ `smoke_dashboard` 15/15 |
+| **7** | `dashboard/` (RBAC, live view, GitHub diff, alert feed, evidence, PDF) | ✅ `smoke_dashboard` 20/20 |
 | **8** | `attacker/attacks.py` + `demo_sequence.py` | ✅ `smoke_attacker` 10/10 + live demo |
 | **9** | Two-host integration on real Pi + laptop | ✅ verified on a Raspberry Pi 4 + laptop over Wi-Fi (cyber detection + agent event-forwarding live end-to-end) |
+| **10** | Chemical Site B + unified two-site SOC + attack categorization | ✅ `smoke_grfics` 39/39 · `smoke_multisite` 20/20 · `smoke_classify` 20/20 |
 
-**Delivered: 98/98 checks across 7 suites, plus a verified real-hardware two-machine run.**
+**Delivered: 183/183 checks across 10 suites, plus a verified real-hardware two-machine run.**
 
 ---
 

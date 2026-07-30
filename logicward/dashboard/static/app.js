@@ -428,7 +428,9 @@
     const s = el("div"); s.appendChild(el("span", "sev " + e.severity, e.severity)); row.appendChild(s);
     row.appendChild(el("div", "cell-time", timeOf(e)));
     const det = el("div");
-    det.appendChild(el("div", "det-title", (e.details && e.details.reason) || pretty(e.type)));
+    const title = el("div", "det-title", (e.details && e.details.reason) || pretty(e.type));
+    if (e.category) title.appendChild(el("span", "category-chip " + e.category, CAT_LABEL[e.category] || e.category));
+    det.appendChild(title);
     if (e.details && e.details.command) det.appendChild(el("div", "det-detail", e.details.command));
     row.appendChild(det);
     const mt = el("div");

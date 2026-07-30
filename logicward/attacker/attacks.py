@@ -141,7 +141,7 @@ class Attacker:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="LogicWard attacker toolkit")
+    p = argparse.ArgumentParser(description="Vigilo attacker toolkit")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--modbus-port", type=int, default=config.MODBUS_PORT)
     p.add_argument("cmd", choices=["setpoint-drift", "force-coil", "ddos", "rogue",
