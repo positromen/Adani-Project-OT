@@ -44,6 +44,43 @@ USERS = {
 ROLE_RANK = {"operator": 1, "engineer": 2, "soc_analyst": 3, "admin": 4}
 
 
+# ── production-grade analytics helpers (additive) ─────────────────────────────
+_SEV_WEIGHT = {"critical": 30, "high": 15, "medium": 6, "low": 2, "info": 0}
+_RISK_BANDS = [(85, "CRITICAL"), (65, "HIGH"), (40, "ELEVATED"), (20, "MODERATE"), (0, "LOW")]
+
+
+def _risk(counts: dict, integrity: str, in_sync: bool) -> tuple[int, str]:
+    """Explainable 0-100 platform risk score from active alerts + posture."""
+    score = sum(_SEV_WEIGHT.get(sev, 0) * n for sev, n in counts.items())
+    if integrity != "VALID":
+        score += 40                     # a tampered baseline is a major posture hit
+    if not in_sync:
+        score += 15                     # running program has drifted from baseline
+    score = max(0, min(100, int(score)))
+    band = next(name for thr, name in _RISK_BANDS if score >= thr)
+    return score, band
+
+
+def _site_health(events: list[dict], chem_up: bool) -> list[dict]:
+    """Per-site alert rollup for the multi-site health panel."""
+    out = []
+    for p in registry.SITE_PROFILES:
+        sev = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+        for e in events:
+            if registry.site_of(e) == p.site_id:
+                s = e.get("severity", "info")
+                sev[s] = sev.get(s, 0) + 1
+        online = True if p.site_id == "thermal-pi" else chem_up
+        out.append({
+            "site_id": p.site_id, "name": p.name, "icon": p.icon,
+            "online": online, "events": sum(sev.values()),
+            "critical": sev["critical"], "high": sev["high"],
+            "status": ("CRITICAL" if sev["critical"] else
+                       "WARNING" if (sev["high"] or sev["medium"]) else "NOMINAL"),
+        })
+    return out
+
+
 class Dashboard:
     """Holds the live objects the routes act on."""
 
@@ -150,15 +187,28 @@ class Dashboard:
         counts = evidence_mod.summary(events)
         live = l5x.parse(self.plant.program_source())
         diff = l5x_diff.diff_programs(self.baseline_prog, live)
+        integrity = "VALID" if bl.verify(self.signed) else "TAMPERED"
+        risk_score, risk_band = _risk(counts, integrity, diff["changed"] == 0)
         return {
             "controller": self.signed["manifest"]["controller"],
             "baseline_hash": self.signed["manifest"]["structural_hash"],
-            "baseline_integrity": "VALID" if bl.verify(self.signed) else "TAMPERED",
+            "baseline_integrity": integrity,
             "live_hash": diff["live_hash"],
             "program_in_sync": diff["changed"] == 0,
+            "program_changed": diff["changed"],
             "severity_counts": counts,
             "event_total": len(events),
             "critical_open": counts.get("critical", 0),
+            # -- production-grade additions (all additive) --
+            "risk_score": risk_score,
+            "risk_band": risk_band,
+            "sites": _site_health(events, self.chem is not None),
+            "rollback": {
+                "baseline_integrity": integrity,
+                "program_in_sync": diff["changed"] == 0,
+                "drifted_rungs": diff["changed"],
+                "restorable": diff["changed"] > 0 or integrity != "VALID",
+            },
         }
 
     def diff(self) -> dict:

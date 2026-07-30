@@ -53,6 +53,20 @@
 
     <!-- Overview -->
     <section id="tab-overview" class="panel">
+      <div class="risk-row">
+        <div class="card risk-card" id="risk-card">
+          <div class="risk-score" id="risk-score">—</div>
+          <div class="risk-meta">
+            <div class="risk-band" id="risk-band">—</div>
+            <div class="risk-caption">Platform risk score</div>
+            <div class="risk-bar"><div id="risk-bar-fill"></div></div>
+          </div>
+        </div>
+        <div class="card timeline-card">
+          <div class="card-h">Attack timeline <span class="muted tiny">most recent → now</span></div>
+          <div class="timeline" id="timeline"><div class="muted tiny" style="padding:14px">No events yet.</div></div>
+        </div>
+      </div>
       <div class="kpi-row">
         <div class="kpi"><div class="kpi-label">Baseline integrity</div><div class="kpi-val" id="kpi-integrity">—</div></div>
         <div class="kpi"><div class="kpi-label">Program vs baseline</div><div class="kpi-val" id="kpi-sync">—</div></div>
@@ -62,6 +76,10 @@
       <div class="two-col">
         <div class="card"><div class="card-h">Plant at a glance</div><div id="ov-plant" class="mini-plant"></div></div>
         <div class="card"><div class="card-h">Recent alerts</div><div id="ov-alerts" class="feed"></div></div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div class="card-h">System health — monitored sites</div><div id="site-health" class="health-grid"></div></div>
+        <div class="card"><div class="card-h">Baseline &amp; rollback status</div><div id="rollback-status" class="rollback"></div></div>
       </div>
     </section>
 

@@ -167,7 +167,60 @@
       $("#side-hash").textContent = (o.baseline_hash || "").slice(0, 30) + "…";
       const sp = $("#side-integrity"); sp.textContent = o.baseline_integrity;
       sp.className = "pill " + (o.baseline_integrity === "VALID" ? "ok" : "bad");
+      // -- production-grade panels (additive) --
+      renderRisk(o.risk_score, o.risk_band);
+      renderHealth(o.sites || []);
+      renderRollback(o.rollback || {});
     }).catch(() => {});
+  }
+
+  // ---- risk score / system health / rollback (production-grade) ----
+  const RISK_COLOR = { LOW: "var(--good)", MODERATE: "var(--warn)", ELEVATED: "var(--serious)", HIGH: "var(--crit)", CRITICAL: "var(--crit)" };
+  function renderRisk(score, band) {
+    if (score == null) return;
+    const s = $("#risk-score"); if (s) s.textContent = score;
+    const b = $("#risk-band"); if (b) { b.textContent = band || "—"; b.style.color = RISK_COLOR[band] || "var(--muted)"; }
+    const f = $("#risk-bar-fill"); if (f) { f.style.width = score + "%"; f.style.background = RISK_COLOR[band] || "var(--accent)"; }
+  }
+  function renderHealth(sites) {
+    const box = $("#site-health"); if (!box) return;
+    box.innerHTML = "";
+    sites.forEach(s => {
+      const row = el("div", "health-row");
+      row.appendChild(el("span", "health-dot " + (s.online ? "up" : "down")));
+      const main = el("div", "health-main");
+      main.appendChild(el("div", "health-name", (s.icon || "") + " " + s.name));
+      main.appendChild(el("div", "health-sub", (s.online ? "online" : "offline") + " · " + s.events + " events"));
+      row.appendChild(main);
+      row.appendChild(el("span", "health-status st-" + (s.status || "").toLowerCase(), s.status || ""));
+      box.appendChild(row);
+    });
+  }
+  function renderRollback(rb) {
+    const box = $("#rollback-status"); if (!box) return;
+    box.innerHTML = "";
+    const mk = (label, val, ok) => {
+      const r = el("div", "rb-row");
+      r.appendChild(el("span", "rb-label", label));
+      r.appendChild(el("span", "rb-val " + (ok ? "ok" : "bad"), val));
+      box.appendChild(r);
+    };
+    mk("Baseline integrity", rb.baseline_integrity || "—", rb.baseline_integrity === "VALID");
+    mk("Program vs baseline", rb.program_in_sync ? "IN SYNC" : ((rb.drifted_rungs || 0) + " rung(s) drifted"), !!rb.program_in_sync);
+    mk("Rollback", rb.restorable ? "restore available" : "not needed", !rb.restorable);
+  }
+  function renderTimeline(evs) {
+    const box = $("#timeline"); if (!box) return;
+    if (!evs.length) { box.innerHTML = '<div class="muted tiny" style="padding:14px">No events yet.</div>'; return; }
+    const recent = evs.slice().sort((a, b) => a.seq - b.seq).slice(-48);
+    box.innerHTML = "";
+    recent.forEach(e => {
+      const tick = el("div", "tl-tick " + e.severity);
+      const sid = (typeof eventSite === "function") ? eventSite(e) : "thermal-pi";
+      const sname = (typeof SITE_SHORT !== "undefined" && SITE_SHORT[sid]) || sid;
+      tick.title = sname + " · " + e.type + " · " + (e.timestamp || "").slice(11, 19);
+      box.appendChild(tick);
+    });
   }
 
   function pollPlant() {
@@ -234,6 +287,7 @@
       sortedEvents(vis).slice(0, 6).forEach(e => ov.appendChild(alertRow(e, false)));
       if (!vis.length) ov.appendChild(el("div", "muted tiny", "No drift detected — plant nominal."));
     }
+    renderTimeline(vis);
     flagMimic();
   }
 

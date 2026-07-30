@@ -256,3 +256,42 @@ b{font-weight:700}
 .role-tags .tag{font-size:10.5px;font-weight:700;color:var(--accent);
   background:rgba(57,135,229,.1);border:1px solid rgba(57,135,229,.25);
   padding:3px 9px;border-radius:20px}
+
+/* ── Production-grade overview: risk score, attack timeline, health, rollback ── */
+.risk-row{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:1000px){.risk-row{grid-template-columns:1fr}}
+.risk-card{display:flex;align-items:center;gap:16px;padding:16px 18px}
+.risk-score{font-size:52px;font-weight:800;line-height:1;color:var(--navy);font-variant-numeric:tabular-nums}
+.risk-meta{flex:1}
+.risk-band{font-size:14px;font-weight:800;letter-spacing:.04em}
+.risk-caption{font-size:11px;color:var(--muted);margin:2px 0 8px}
+.risk-bar{height:8px;background:var(--hair);border-radius:5px;overflow:hidden}
+.risk-bar>div{height:100%;width:0;background:var(--accent);border-radius:5px;transition:width .4s,background .4s}
+.timeline-card{display:flex;flex-direction:column}
+.timeline{display:flex;align-items:flex-end;gap:3px;flex-wrap:wrap;padding:14px 16px;min-height:56px}
+.tl-tick{width:9px;height:22px;border-radius:2px;background:var(--muted-2);cursor:default;transition:transform .1s}
+.tl-tick:hover{transform:scaleY(1.35)}
+.tl-tick.critical{background:var(--crit);height:34px} .tl-tick.high{background:var(--serious);height:28px}
+.tl-tick.medium{background:var(--warn);height:24px} .tl-tick.low{background:var(--good);height:18px}
+.tl-tick.info{background:var(--muted-2);height:14px}
+
+.health-grid{display:flex;flex-direction:column}
+.health-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--hair)}
+.health-row:last-child{border-bottom:0}
+.health-dot{width:10px;height:10px;border-radius:50%;flex:none}
+.health-dot.up{background:var(--good);box-shadow:0 0 0 3px var(--good-bg)}
+.health-dot.down{background:var(--muted-2);box-shadow:0 0 0 3px var(--hair)}
+.health-main{flex:1}
+.health-name{font-size:13px;font-weight:600;color:var(--ink)}
+.health-sub{font-size:11px;color:var(--muted)}
+.health-status{font-size:10px;font-weight:800;letter-spacing:.04em;padding:3px 9px;border-radius:20px}
+.st-nominal{background:var(--good-bg);color:var(--good)}
+.st-warning{background:var(--warn-bg);color:var(--warn)}
+.st-critical{background:var(--crit-bg);color:var(--crit)}
+
+.rollback{display:flex;flex-direction:column}
+.rb-row{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--hair)}
+.rb-row:last-child{border-bottom:0}
+.rb-label{font-size:12.5px;color:var(--ink-2)}
+.rb-val{font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px}
+.rb-val.ok{background:var(--good-bg);color:var(--good)} .rb-val.bad{background:var(--crit-bg);color:var(--crit)}
