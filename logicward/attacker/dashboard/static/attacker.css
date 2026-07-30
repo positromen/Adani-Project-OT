@@ -30,6 +30,20 @@
   --transition:    0.2s ease;
 }
 
+/* light theme — the red-team console stays punchy, just on a light canvas */
+html[data-theme="light"] {
+  --bg-primary:    #eef1f6;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #f4f6fb;
+  --bg-surface:    #f8fafc;
+  --border:        #dbe0ea;
+  --border-glow:   #ff2d5533;
+  --text-primary:  #0f172a;
+  --text-secondary:#64748b;
+  --text-dim:      #94a3b8;
+}
+html[data-theme="light"] .scanlines { display: none; }
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
@@ -446,6 +460,19 @@ body {
 .gt-copy{background:transparent;border:1px solid #2a3548;color:#b9c4d8;padding:9px 13px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:.85em}
 .gt-copy:hover{border-color:#37e0a0;color:#fff}
 .gt-hint{font-size:.8em;color:#5f7597}
+
+/* ── theme toggle + scoped terminal ──────────────────────────────────────── */
+.rt-theme{width:34px;height:34px;flex:none;border:1px solid var(--border);background:var(--bg-card);border-radius:8px;
+  cursor:pointer;color:var(--text-secondary);font-size:15px;display:inline-flex;align-items:center;justify-content:center}
+.rt-theme:hover{border-color:var(--red-primary);color:var(--text-primary)}
+.term-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.term-out{min-height:120px;max-height:320px;overflow:auto;padding:14px 16px;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;background:#070b12}
+html[data-theme="light"] .term-out{background:#0b1220}
+.term-input{display:flex;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg-surface)}
+.term-prompt{font-family:var(--font-mono);font-size:12.5px;color:#37e0a0;font-weight:700;flex:none}
+.term-input input{flex:1;background:transparent;border:0;outline:0;color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px}
+.term-input input::placeholder{color:var(--text-dim)}
+.term-box code{font-family:var(--font-mono);color:var(--cyan)}
 
 /* ── Animations ───────────────────────────────────────────────────────── */
 @keyframes spin {

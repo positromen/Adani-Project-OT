@@ -444,11 +444,61 @@ def create_app(dashboard: Dashboard | None = None, embed: bool | None = None) ->
     @app.post("/api/baseline/lock")
     @require_cap("baseline")
     def api_lock():
+        # if the running program has drifted, accepting it as the baseline without
+        # review is a change-management error -> a "mistake"-category governance event.
+        drifted = 0
+        try:
+            drifted = dash.diff().get("changed", 0)
+        except Exception:  # noqa: BLE001
+            drifted = 0
         dash.relock_baseline()
         dash.bus.emit_new("response.restore_baseline", "dashboard",
                           {"reason": f"Baseline re-locked by {session['user']}", "performed": True},
                           identity={"who": session["user"], "channel": "operator"})
-        return jsonify({"status": "locked", "hash": dash.signed["manifest"]["structural_hash"]})
+        if drifted:
+            dash.bus.emit_new(
+                "cyber.baseline_relocked", "dashboard",
+                {"reason": (f"{session['user']} accepted a DRIFTED program ({drifted} rung(s) changed) as the "
+                            "new signed baseline without review — a change-management error"),
+                 "changed": drifted},
+                identity={"who": session["user"], "channel": "operator"},
+                category="mistake")
+        return jsonify({"status": "locked", "hash": dash.signed["manifest"]["structural_hash"],
+                        "accepted_drift": drifted})
+
+    # ── Insider attacker surface (C&I / Control Engineer on the engineering workstation) ──
+    # These push program logic through the download channel -> classified INTERNAL.
+    INSIDER_ATTACKS = {
+        "logic-inversion": "Invert the drum-level trip comparator (LES → GRT)",
+        "condition-stripping": "Strip the Plant_Running interlock from the flame trip",
+        "coil-hijack": "Redirect the Feedwater_Trip output coil",
+        "rung-injection": "Inject a hidden backdoor rung",
+        "program-setpoint": "Lower the drum-level trip setpoint 220 → 40 in the program",
+    }
+
+    @app.get("/api/insider/attacks")
+    @require_cap("baseline")
+    def api_insider_list():
+        return jsonify({"attacks": [{"id": k, "desc": v} for k, v in INSIDER_ATTACKS.items()],
+                        "target": config.PI_HOST})
+
+    @app.post("/api/insider/attack/<atk>")
+    @require_cap("baseline")
+    def api_insider_attack(atk):
+        from logicward.attacker.terminal import run_scoped
+        if atk not in INSIDER_ATTACKS:
+            return jsonify({"ok": False, "output": f"unknown insider attack: {atk}"}), 404
+        cmd = f"python -m logicward.attacker.attacks --host {config.PI_HOST} --modbus-port {config.MODBUS_PORT} {atk}"
+        ok, out = run_scoped(cmd)
+        return jsonify({"ok": ok, "output": out, "cmd": cmd})
+
+    @app.post("/api/insider/exec")
+    @require_cap("baseline")
+    def api_insider_exec():
+        from logicward.attacker.terminal import run_scoped
+        data = request.get_json(silent=True) or {}
+        ok, out = run_scoped(data.get("cmd", ""))
+        return jsonify({"ok": ok, "output": out})
 
     @app.post("/api/response/ack")
     @require_cap("ack")

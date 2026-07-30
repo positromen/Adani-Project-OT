@@ -275,6 +275,14 @@ def create_app(host: str = "127.0.0.1", modbus_port: int = 5020,
             return jsonify({"status": "error",
                             "detail": f"{type(exc).__name__}: {exc}"}), 500
 
+    @app.post("/api/terminal")
+    def run_terminal():
+        """Scoped terminal — runs an allow-listed Vigilo attack command, returns output."""
+        from logicward.attacker.terminal import run_scoped
+        data = request.get_json(silent=True) or {}
+        ok, out = run_scoped(data.get("cmd", ""))
+        return jsonify({"ok": ok, "output": out})
+
     @app.post("/api/utility")
     def run_utility():
         data = request.get_json(silent=True) or {}

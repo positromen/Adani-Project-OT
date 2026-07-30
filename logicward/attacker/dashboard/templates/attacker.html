@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,6 +31,7 @@
         <span class="label">PROGRAM</span>
         <span class="value">:{{ program_port }}</span>
       </div>
+      <button class="rt-theme" id="rtTheme" onclick="toggleRtTheme()" title="Toggle light / dark">☀</button>
       <div class="status-dot" id="statusDot" title="Checking..."></div>
     </div>
   </header>
@@ -100,6 +101,23 @@
           </button>
         </div>
         {% endfor %}
+      </div>
+    </section>
+
+    <!-- Scoped terminal -->
+    <section class="section">
+      <h2 class="section-title"><span class="section-icon">⌨️</span> Terminal
+        <span class="target-sub">scoped to the Vigilo attack CLI · type <code>help</code></span></h2>
+      <div class="term-box">
+        <div class="term-out" id="termOut">
+          <div class="gt-line gt-dim">Scoped terminal ready. Only <code>python -m logicward.attacker.attacks …</code> and <code>…sites.grfics.attacks …</code> run here.</div>
+        </div>
+        <div class="term-input">
+          <span class="term-prompt">attacker@redteam:~$</span>
+          <input id="termInput" autocomplete="off" spellcheck="false"
+                 placeholder="python -m logicward.attacker.attacks --host {{ target_host }} --modbus-port {{ modbus_port }} setpoint-drift">
+          <button class="btn-attack" id="termRun" onclick="termRun()"><span class="btn-label">RUN</span></button>
+        </div>
       </div>
     </section>
 

@@ -207,3 +207,45 @@ async function guidedRun() {
   }
   run.disabled = false; run.querySelector(".btn-label").textContent = "RUN AGAIN";
 }
+
+/* ── light / dark theme ──────────────────────────────────────────────────── */
+function toggleRtTheme() {
+  const root = document.documentElement;
+  const next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+  root.setAttribute("data-theme", next);
+  try { localStorage.setItem("rt_theme", next); } catch (e) {}
+  const b = document.getElementById("rtTheme"); if (b) b.textContent = next === "light" ? "☾" : "☀";
+}
+(function initRtTheme() {
+  const root = document.documentElement;
+  let t = "dark"; try { if (localStorage.getItem("rt_theme") === "light") t = "light"; } catch (e) {}
+  root.setAttribute("data-theme", t);
+  const b = document.getElementById("rtTheme"); if (b) b.textContent = t === "light" ? "☾" : "☀";
+})();
+
+/* ── scoped terminal ─────────────────────────────────────────────────────── */
+function termWrite(html, cls) {
+  const o = document.getElementById("termOut");
+  const d = document.createElement("div");
+  d.className = "gt-line " + (cls || "");
+  d.innerHTML = html;
+  o.appendChild(d); o.scrollTop = o.scrollHeight;
+}
+async function termRun() {
+  const inp = document.getElementById("termInput");
+  const cmd = (inp.value || "").trim(); if (!cmd) return;
+  termWrite('<span class="gt-prompt">attacker@redteam:~$</span> ' + esc(cmd), "gt-cmd");
+  inp.value = "";
+  const btn = document.getElementById("termRun"); btn.disabled = true;
+  try {
+    const r = await fetch("/api/terminal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cmd }) });
+    const d = await r.json();
+    (d.output || "").split("\n").forEach(line => termWrite(esc(line), d.ok ? "gt-out" : "gt-err"));
+    log((d.ok ? "⌨ " : "✗ ") + "terminal: " + cmd, d.ok ? "success" : "error");
+  } catch (err) { termWrite("[!] " + esc(err.message), "gt-err"); }
+  btn.disabled = false; inp.focus();
+}
+(function wireTerm() {
+  const inp = document.getElementById("termInput");
+  if (inp) inp.addEventListener("keydown", (e) => { if (e.key === "Enter") termRun(); });
+})();

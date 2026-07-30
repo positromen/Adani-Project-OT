@@ -89,11 +89,13 @@ def channel_for_type(event_type: str) -> str:
 
 def new_event(event_type: str, source: str, details: dict | None = None, *,
               severity: str | None = None, timestamp: str | None = None,
-              event_id: str | None = None, identity: dict | None = None) -> dict:
+              event_id: str | None = None, identity: dict | None = None,
+              category: str | None = None) -> dict:
     """Build a well-formed (pre-enrichment) Event.
 
     `severity` left None means "let the bus compute it". `event_id` is always
-    populated so remote ingest is idempotent across retries.
+    populated so remote ingest is idempotent across retries. `category` left None
+    means "let the bus classify it"; pass it to override (e.g. a governance mistake).
     """
     ev = {
         "event_id": event_id or str(uuid.uuid4()),
@@ -105,6 +107,8 @@ def new_event(event_type: str, source: str, details: dict | None = None, *,
     }
     if identity:
         ev["identity"] = identity
+    if category:
+        ev["category"] = category
     return ev
 
 
@@ -219,7 +223,11 @@ class EventBus:
         identity.setdefault("who", event["source"])
         identity.setdefault("mac", None)
         identity.setdefault("channel", channel_for_type(etype))
-        category, category_reason = classify_drift(etype, details, identity)
+        category = event.get("category")
+        if category:
+            category_reason = event.get("category_reason") or "declared by the reporting surface"
+        else:
+            category, category_reason = classify_drift(etype, details, identity)
         return {
             "event_id": event.get("event_id") or str(uuid.uuid4()),
             "type": etype,

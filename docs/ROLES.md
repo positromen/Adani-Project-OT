@@ -21,7 +21,7 @@ landing page, and its own quick-action buttons (least privilege = least visibili
 | Role (login) | Lands on | Tabs it sees | Capabilities | Quick-action buttons |
 | :-- | :-- | :-- | :-- | :-- |
 | **Operator** (Control Room)<br>`operator / operator123` | Live Plant | Live Plant · Alerts | ack, ack_all | Acknowledge all |
-| **C&I / Control Engineer**<br>`engineer / engineer123` | Program Diff | Overview · Live Plant · Program Diff · Alerts | ack, ack_all, **baseline**, **safe_state** | Acknowledge all · Re-lock baseline · Restore baseline · Recommend safe-state |
+| **C&I / Control Engineer**<br>`engineer / engineer123` | Program Diff | Overview · Live Plant · Program Diff · **Insider** · Alerts | ack, ack_all, **baseline**, **safe_state** | Acknowledge all · Re-lock baseline · Restore baseline · Recommend safe-state |
 | **OT Network / Security Eng.**<br>`netsec / netsec123` | Alerts | Overview · Alerts · Live Plant | ack, ack_all, **network_response** | Acknowledge all · Quarantine rogue |
 | **SOC Analyst**<br>`soc / soc123` | Overview | Overview · Live Plant · Program Diff · Alerts · Evidence | ack, ack_all, network_response, safe_state, **evidence** | Acknowledge all · Quarantine rogue · Recommend safe-state · Export forensic PDF |
 | **Vendor / OEM Contractor**<br>`vendor / vendor123` | Live Plant | Live Plant · Program Diff *(read-only)* | *(none)* | *Read-only session · all actions monitored* |
@@ -46,6 +46,18 @@ landing page, and its own quick-action buttons (least privilege = least visibili
 4. **The failure mode = a `mistake`:** if the approver *rubber-stamps* a **drifted / unreviewed** program as
    the new baseline, they have effectively blessed an unauthorized change. This is the "mistake" attack
    category — a change-management error, not a network intrusion.
+
+## Attack surfaces → categories (how the three classes are produced)
+- **External** — the standalone **Red-Team console (`:9090`)**: unauthenticated Modbus register/coil forces,
+  rogue device, DDoS. Classified `external`.
+- **Internal** — the **Insider tab** inside the SOC, shown only to the **C&I / Control Engineer**: one-click
+  program-logic pushes + a **scoped terminal** (runs only the Vigilo attack CLI, no open shell). Program
+  downloads through the engineering channel → classified `internal`.
+- **Mistake** — the **baseline-approval error**: if an approver **re-locks a *drifted* program** (accepts an
+  unreviewed / hacked version as the new signed baseline), Vigilo emits a `mistake`-category governance event.
+- Both terminals are deliberately **scoped** (`logicward/attacker/terminal.py`): only
+  `python -m logicward.attacker.attacks …` / `…sites.grfics.attacks …` run, shell metacharacters are
+  rejected, and there is a hard timeout — real commands + live output, never an open remote shell.
 
 ## Design note (secure by design)
 Least privilege is applied to **visibility**, not only actions: an Operator never sees the
