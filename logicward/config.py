@@ -29,6 +29,8 @@ PI_HOST = _env("PI_HOST", "127.0.0.1")
 MODBUS_PORT = int(_env("MODBUS_PORT", "5020"))          # 502 needs root; 5020 for dev
 PROGRAM_PORT = int(_env("PROGRAM_PORT", "8081"))
 PROGRAM_URL = _env("PROGRAM_URL", f"http://{PI_HOST}:{PROGRAM_PORT}/program")
+# Pi-side write-attribution HTTP endpoint (who wrote which Modbus register/coil)
+WRITES_PORT = int(_env("WRITES_PORT", "5024"))
 
 # ── Engine + agent timing (seconds) ───────────────────────────────────────────
 POLL_INTERVAL_SEC = float(_env("POLL_INTERVAL", "1.0"))

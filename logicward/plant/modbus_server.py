@@ -69,6 +69,7 @@ class ThermalDataStore:
         for tag, v in SEED_DISCRETE.items():
             self.discrete_inputs[r2r.BY_TAG[tag].address] = bool(v)
         self.write_log: list[dict] = []
+        self.last_write_by_addr: dict[tuple[str, int], tuple[str | None, str]] = {}
         self.request_count = 0
 
     # -- tag accessors --
@@ -119,13 +120,23 @@ class ThermalDataStore:
             self.set_coil("Condenser_Trip", running and self.ir("Condenser_Vacuum") < self.hr("Condenser_Vac_LO_SP"))
             self.set_coil("Vibration_Alarm", self.ir("Bearing_Vibration") > self.hr("Bearing_Vib_HI_SP"))
 
-    def log_write(self, fc: int, addr: int, value, unit_id: int) -> None:
-        self.write_log.append({"time": datetime.now(timezone.utc).isoformat(),
-                               "fc": f"0x{fc:02X}", "address": addr,
-                               "value": value, "unit_id": unit_id})
+    def log_write(self, fc: int, addr: int, value, unit_id: int, client_ip: str | None = None) -> None:
+        ts = datetime.now(timezone.utc).isoformat()
+        self.write_log.append({"time": ts, "fc": f"0x{fc:02X}", "address": addr,
+                               "value": value, "unit_id": unit_id, "client_ip": client_ip})
         if len(self.write_log) > 500:
             self.write_log.pop(0)
-        log.warning(f"[WRITE] FC={fc:02X} addr={addr} val={value} unit={unit_id}")
+        # attribute WHO wrote which register/coil (FC05 -> coil, FC06/10 -> holding)
+        self.last_write_by_addr[("C" if fc == 0x05 else "HR", addr)] = (client_ip, ts)
+        log.warning(f"[WRITE] FC={fc:02X} addr={addr} val={value} unit={unit_id} from={client_ip}")
+
+    def writer_for(self, tag: str) -> str | None:
+        """Source IP of the last Modbus write to `tag`'s register/coil (or None)."""
+        p = r2r.BY_TAG.get(tag)
+        if not p:
+            return None
+        ip, _ts = self.last_write_by_addr.get((p.area, p.address), (None, None))
+        return ip
 
     def named_snapshot(self) -> dict:
         """Human/engine-friendly view of live state (used by the dashboard/tests)."""
@@ -165,7 +176,7 @@ class ModbusTCPHandler:
     def _resp(self, tid, unit, pdu):
         return struct.pack(">HHHB", tid, 0, len(pdu) + 1, unit) + pdu
 
-    def handle(self, data: bytes) -> bytes | None:
+    def handle(self, data: bytes, client_ip: str | None = None) -> bytes | None:
         if len(data) < 8:
             return None
         tid, proto, _length, unit = struct.unpack(">HHHB", data[:7])
@@ -209,7 +220,7 @@ class ModbusTCPHandler:
                 return self._exc(tid, unit, fc, self.EX_ILLEGAL_DATA_ADDRESS)
             with self.ds.lock:
                 self.ds.coils[addr] = (value == 0xFF00)
-            self.ds.log_write(fc, addr, value == 0xFF00, unit)
+            self.ds.log_write(fc, addr, value == 0xFF00, unit, client_ip)
             return self._resp(tid, unit, struct.pack("B", fc) + payload[:4])
 
         if fc == 0x06:                              # write single holding register
@@ -218,7 +229,7 @@ class ModbusTCPHandler:
                 return self._exc(tid, unit, fc, self.EX_ILLEGAL_DATA_ADDRESS)
             with self.ds.lock:
                 self.ds.holding_registers[addr] = value
-            self.ds.log_write(fc, addr, value, unit)
+            self.ds.log_write(fc, addr, value, unit, client_ip)
             return self._resp(tid, unit, struct.pack("B", fc) + payload[:4])
 
         if fc == 0x10:                              # write multiple holding registers
@@ -229,7 +240,8 @@ class ModbusTCPHandler:
             with self.ds.lock:
                 for i in range(count):
                     self.ds.holding_registers[start + i] = struct.unpack(">H", body[i * 2:i * 2 + 2])[0]
-            self.ds.log_write(fc, start, f"{count} regs", unit)
+            for i in range(count):                   # attribute every register in the block
+                self.ds.log_write(0x06, start + i, "multi", unit, client_ip)
             return self._resp(tid, unit, struct.pack(">BHH", fc, start, count))
 
         if fc == 0x11:                              # report server id (info leak)
@@ -264,7 +276,7 @@ class ModbusTCPServer:
                     if not chunk:
                         break
                     body += chunk
-                resp = self.handler.handle(header + body)
+                resp = self.handler.handle(header + body, addr[0] if addr else None)
                 if resp:
                     conn.sendall(resp)
         except (socket.timeout, OSError):
@@ -317,9 +329,31 @@ class ModbusTCPServer:
                 pass
 
 
+def serve_writes(ds, port: int | None = None) -> None:
+    """Tiny HTTP endpoint exposing the write-attribution map (who wrote what),
+    so a remote laptop's drift engine can attribute Modbus writes to a source IP.
+    Runs in a daemon thread beside the raw-socket Modbus server (Pi side)."""
+    from flask import Flask, jsonify
+    app = Flask(__name__)
+
+    @app.get("/writes")
+    def writes():
+        return jsonify({"writes": {f"{area}:{addr}": {"ip": ip, "ts": ts}
+                                   for (area, addr), (ip, ts) in ds.last_write_by_addr.items()}})
+
+    @app.get("/health")
+    def health():
+        return jsonify({"status": "ok", "writes": len(ds.last_write_by_addr)})
+
+    app.run(host="0.0.0.0", port=port or config.WRITES_PORT, threaded=True)
+
+
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else config.MODBUS_PORT
-    ModbusTCPServer(port=port).start()
+    server = ModbusTCPServer(port=port)
+    threading.Thread(target=serve_writes, args=(server.ds,), daemon=True).start()
+    log.info(f"write-attribution HTTP on :{config.WRITES_PORT}  (GET /writes -> who wrote what)")
+    server.start()
 
 
 if __name__ == "__main__":

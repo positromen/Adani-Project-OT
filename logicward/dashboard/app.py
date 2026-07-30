@@ -129,7 +129,8 @@ class Dashboard:
 
         self.drift = DriftEngine(self.bus, self.signed,
                                  program_source=self.plant.program_source,
-                                 register_source=self.plant.register_source)
+                                 register_source=self.plant.register_source,
+                                 who_source=self._who)
         self.response = ResponseEngine(self.bus, restore_hook=self._restore_baseline_program)
         self.baseline_fim = BaselineFileMonitor(self.baseline_path, self.bus.emit)
 
@@ -169,8 +170,19 @@ class Dashboard:
         self.baseline_prog = l5x.parse(self.signed["manifest"]["l5x"].encode())
         self.drift = DriftEngine(self.bus, self.signed,
                                  program_source=self.plant.program_source,
-                                 register_source=self.plant.register_source)
+                                 register_source=self.plant.register_source,
+                                 who_source=self._who)
         return self.signed
+
+    def _who(self, tag: str | None, channel: str) -> str | None:
+        """Attribute a detected change to the attacker's source IP (or None)."""
+        if tag and hasattr(self.plant, "writer_for"):
+            ip = self.plant.writer_for(tag)
+            if ip:
+                return ip
+        if channel == "program-download" and hasattr(self.plant, "program_writer"):
+            return self.plant.program_writer()
+        return None
 
     def _restore_baseline_program(self) -> bool:
         """Restore hook: re-download the approved program to the plant."""

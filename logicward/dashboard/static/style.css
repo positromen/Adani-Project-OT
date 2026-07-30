@@ -307,3 +307,6 @@ b{font-weight:700}
 .trend-cur{font-size:16px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
 .trend-unit{font-size:11px;color:var(--muted);font-weight:400}
 .spark{display:block;width:100%;height:34px;margin-top:6px}
+
+/* attacker attribution — "by whom" chip on alerts */
+.who-chip{font-size:10px;font-weight:700;color:var(--crit);background:var(--crit-bg);padding:1px 7px;border-radius:20px;font-family:var(--mono)}

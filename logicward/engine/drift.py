@@ -50,6 +50,7 @@ class DriftEngine:
     def __init__(self, bus, signed_baseline: dict,
                  program_source: Callable[[], bytes],
                  register_source: Callable[[], dict] | None = None,
+                 who_source: Callable[[str | None, str], str | None] | None = None,
                  source: str = "drift_engine"):
         self.bus = bus
         self.signed = signed_baseline
@@ -61,6 +62,7 @@ class DriftEngine:
         self.baseline_regs = m.get("registers", {})
         self.program_source = program_source
         self.register_source = register_source
+        self.who_source = who_source
         self._seen: set = set()
         self.baseline_valid = baseline_mod.verify(signed_baseline)
 
@@ -83,8 +85,12 @@ class DriftEngine:
         if key in self._seen:
             return None
         self._seen.add(key)
+        who = "unknown"
+        if self.who_source:
+            tag = details.get("tag") or details.get("coil")
+            who = self.who_source(tag, channel) or "unknown"
         return self.bus.emit_new(etype, self.source, details,
-                                 identity={"who": "unknown", "channel": channel})
+                                 identity={"who": who, "channel": channel})
 
     # -- structural (L5X) --
     def _structural(self) -> list[dict | None]:

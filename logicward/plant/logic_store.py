@@ -74,8 +74,15 @@ def download_program():
     except Exception as exc:                        # noqa: BLE001 - reject malformed
         return jsonify({"error": f"invalid L5X: {exc}"}), 400
     _live_path().write_bytes(xml)                   # FIM will observe this write
+    current_app.config["LAST_DOWNLOAD"] = {"ip": request.remote_addr}   # attribute WHO downloaded
     return jsonify({"status": "downloaded", "hash": summary["hash"],
                     "controller": summary["controller"], "rung_count": summary["rung_count"]})
+
+
+@program_api.get("/program/downloader")
+def program_downloader():
+    """Source IP of the last program download (attacker attribution for program drift)."""
+    return jsonify(current_app.config.get("LAST_DOWNLOAD") or {"ip": None})
 
 
 @program_api.get("/health")

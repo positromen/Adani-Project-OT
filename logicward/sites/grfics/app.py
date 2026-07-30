@@ -45,7 +45,8 @@ class SiteB:
                                       datastore=self.ds)
         self.server.start(background=True)
         self.modbus_port = self.server.port
-        self.detector = ChemicalDriftDetector(self.bus, self.ds.register_source)
+        self.detector = ChemicalDriftDetector(self.bus, self.ds.register_source,
+                                              who_source=self.ds.writer_for)
         self.attacker = ChemAttacker(host="127.0.0.1", port=self.modbus_port)
         self._stop = threading.Event()
         threading.Thread(target=self._loop, name="grfics-detect", daemon=True).start()
@@ -65,6 +66,7 @@ class SiteB:
         self.server.ds = self.ds
         self.server.handler.ds = self.ds
         self.detector.register_source = self.ds.register_source
+        self.detector.who_source = self.ds.writer_for
         self.attacker = ChemAttacker(host="127.0.0.1", port=self.modbus_port)
         self.detector.relock()
 

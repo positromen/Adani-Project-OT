@@ -17,9 +17,10 @@ from logicward.sites.grfics import points as pts
 
 
 class ChemicalDriftDetector:
-    def __init__(self, bus, register_source, source: str = "grfics_drift"):
+    def __init__(self, bus, register_source, who_source=None, source: str = "grfics_drift"):
         self.bus = bus
         self.register_source = register_source
+        self.who_source = who_source               # tag -> attacker source IP (or None)
         self.source = source
         self.baseline = register_source()          # {holding:{tag:raw}, coils:{tag:bool}}
         self._seen: set = set()
@@ -38,8 +39,13 @@ class ChemicalDriftDetector:
             return None
         self._seen.add(key)
         details = {**details, "site": SITE_ID}
+        who = "unknown"
+        if self.who_source:
+            tag = details.get("tag") or details.get("coil")
+            if tag:
+                who = self.who_source(tag) or "unknown"
         return self.bus.emit_new(etype, self.source, details,
-                                 identity={"who": "unknown", "channel": channel})
+                                 identity={"who": who, "channel": channel})
 
     def run_once(self) -> list[dict]:
         snap = self.register_source() or {}

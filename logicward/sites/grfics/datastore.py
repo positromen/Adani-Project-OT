@@ -58,6 +58,7 @@ class ChemicalDataStore:
         self._push_sensors()
 
         self.write_log: list[dict] = []
+        self.last_write_by_addr: dict[tuple[str, int], tuple[str | None, str]] = {}
         self.request_count = 0
         self._running = False
 
@@ -100,12 +101,22 @@ class ChemicalDataStore:
         """No-op: the reused ModbusTCPServer calls this at 1 Hz; real physics
         runs from tick() on the fast loop instead (avoids double-stepping)."""
 
-    def log_write(self, fc: int, addr: int, value, unit_id: int) -> None:
-        self.write_log.append({"time": datetime.now(timezone.utc).isoformat(),
-                               "fc": f"0x{fc:02X}", "address": addr,
-                               "value": value, "unit_id": unit_id})
+    def log_write(self, fc: int, addr: int, value, unit_id: int, client_ip: str | None = None) -> None:
+        ts = datetime.now(timezone.utc).isoformat()
+        self.write_log.append({"time": ts, "fc": f"0x{fc:02X}", "address": addr,
+                               "value": value, "unit_id": unit_id, "client_ip": client_ip})
         if len(self.write_log) > 500:
             self.write_log.pop(0)
+        # attribute WHO wrote which register/coil (FC05 -> coil, FC06/10 -> holding)
+        self.last_write_by_addr[("C" if fc == 0x05 else "HR", addr)] = (client_ip, ts)
+
+    def writer_for(self, tag: str) -> str | None:
+        """Source IP of the last Modbus write to `tag`'s register/coil (or None)."""
+        p = pts.BY_TAG.get(tag)
+        if not p:
+            return None
+        ip, _ts = self.last_write_by_addr.get((p.area, p.address), (None, None))
+        return ip
 
     # -- physics --
     def tick(self, dt: float) -> None:

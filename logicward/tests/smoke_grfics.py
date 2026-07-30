@@ -88,6 +88,8 @@ def main() -> int:
     # -- 3. quality-sabotage: composition swings, stealthy (no trip / level / pressure move) --
     base, o, evs = fire("quality_sabotage", 4)
     check("quality detected (register_change)", has(evs, "cyber.register_change"))
+    check("attack attributed to source IP (not 'unknown')",
+          bool(evs) and all(e["identity"]["who"] not in (None, "unknown") for e in evs))
     check("quality events tagged + MITRE", tagged(evs) and all(e["mitre"].get("technique_id") for e in evs))
     check("quality swings COMPOSITION (colour)", o["amax"] > base["A_in_purge"] + 12)
     check("quality is STEALTHY (level flat)", o["lmin"] > 30 and o["lmax"] < 55)

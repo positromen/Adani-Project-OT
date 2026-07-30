@@ -84,7 +84,7 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
               Paragraph(f"Total events: {len(events)}", sub),
               Paragraph("Event timeline (most recent first)", h2)]
 
-    header = ["Time (UTC)", "Sev", "Type", "Source", "MITRE", "Detail"]
+    header = ["Time (UTC)", "Sev", "Type", "By whom", "MITRE", "Detail"]
     data = [header]
     for e in query(events, limit=120):
         m = e.get("mitre", {})
@@ -92,7 +92,8 @@ def build_pdf(events: list[dict], meta: dict | None = None) -> bytes:
             Paragraph(e.get("timestamp", "")[:19].replace("T", " "), cell),
             Paragraph(e.get("severity", ""), cell),
             Paragraph(e.get("type", ""), cell),
-            Paragraph(e.get("source", ""), cell),
+            Paragraph((lambda w: w if w and w != "unknown" else e.get("source", ""))(
+                (e.get("identity") or {}).get("who")), cell),
             Paragraph(f"{m.get('technique_id', '')}", cell),
             Paragraph(str(e.get("details", {}).get("reason", ""))[:90], cell),
         ])

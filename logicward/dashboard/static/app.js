@@ -253,6 +253,8 @@
       const m = el("span", "mitre-tag", e.mitre.technique_id + " " + e.mitre.technique_name);
       meta.appendChild(m);
     }
+    const who = e.identity && e.identity.who;
+    if (who && who !== "unknown") meta.appendChild(el("span", "who-chip", "by " + who));
     meta.appendChild(el("span", null, "src: " + e.source));
     if (e.identity && e.identity.channel) meta.appendChild(el("span", null, "via: " + e.identity.channel));
     const d = new Date(e.timestamp); meta.appendChild(el("span", null, isNaN(d) ? (e.timestamp || "").slice(11, 19) : d.toLocaleTimeString([], {hour12: false})));
