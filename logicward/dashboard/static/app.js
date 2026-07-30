@@ -179,7 +179,6 @@
   });
   const viewAllBtn = $("#ov-viewall");
   if (viewAllBtn) viewAllBtn.addEventListener("click", () => { const n = document.querySelector('.nav-item[data-tab="alerts"]'); if (n) n.click(); });
-  setView(activeTab);
 
   // baseline upload (L5X / XML / JSON)
   const blBtn = $("#bl-upload-btn");
@@ -856,6 +855,7 @@
   }
 
   // ---- loops ----
+  setView(activeTab);
   pollEvents(); pollOverview(); pollPlant(); pollTelemetry();
   setInterval(pollEvents, 1000);
   setInterval(pollOverview, 2000);
