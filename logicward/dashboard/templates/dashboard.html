@@ -283,15 +283,32 @@
 
     <!-- Alerts -->
     <section id="tab-alerts" class="panel hidden">
-      <div class="card"><div class="card-h">Alert feed — severity ranked</div>
-        <div id="alerts-table" class="alerts"></div>
+      <div class="card">
+        <div class="card-h">Alert feed <span class="muted tiny" id="alerts-summary">no alerts</span>
+          <span class="hdr-actions">
+            <button class="btn" data-cap="ack_all" id="btn-ack-all">Acknowledge all</button>
+            <button class="btn" data-cap="baseline" id="btn-restore-alerts">Restore baseline</button>
+          </span>
+        </div>
+        <div class="dtbl atbl">
+          <div class="dtbl-head"><div>Severity</div><div>Time</div><div>Plane</div><div>Detection</div><div>MITRE ICS</div><div>Response</div></div>
+          <div id="alerts-table"></div>
+        </div>
       </div>
     </section>
 
     <!-- Evidence -->
     <section id="tab-evidence" class="panel hidden">
-      <div class="card"><div class="card-h">Evidence log <span class="muted tiny">who · when · what · MITRE ATT&amp;CK for ICS</span></div>
-        <div id="evidence-table" class="alerts"></div>
+      <div class="card">
+        <div class="card-h">Evidence log <span class="muted tiny">append-only JSONL · who · when · what</span>
+          <span class="hdr-actions">
+            <a class="btn primary" data-cap="evidence" id="btn-pdf-2" href="/api/evidence/report.pdf">Export PDF report</a>
+          </span>
+        </div>
+        <div class="dtbl evtbl">
+          <div class="dtbl-head"><div>Seq</div><div>Time</div><div>Who</div><div>What</div><div>Event ID</div></div>
+          <div id="evidence-table"></div>
+        </div>
       </div>
     </section>
 

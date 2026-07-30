@@ -103,7 +103,8 @@
     if (dc) dc.classList.toggle("hidden", !showChem);
     // lazy-load the 200 MB 3D scene only when the chemical site is first opened
     if (showChem && !chemFrameLoaded) { const f = $("#chem-frame"); if (f) { f.src = "/viz/"; chemFrameLoaded = true; } }
-    const pdf = $("#btn-pdf"); if (pdf) pdf.href = "/api/evidence/report.pdf" + (id === "all" ? "" : "?site=" + id);
+    const pdfHref = "/api/evidence/report.pdf" + (id === "all" ? "" : "?site=" + id);
+    ["#btn-pdf", "#btn-pdf-2"].forEach(sel => { const p = $(sel); if (p) p.href = pdfHref; });
     render();
   }
 
@@ -152,6 +153,11 @@
     jpost("/api/response/restore").then(() => toast("Approved baseline restored")));
   const clearLogsBtn = $("#btn-clear-logs"); if (clearLogsBtn) clearLogsBtn.addEventListener("click", () =>
     jpost("/api/alerts/clear").then(() => { toast("All alerts cleared"); setTimeout(() => window.location.reload(), 500); }));
+  // Alert-feed card-header actions (mirror the topbar controls)
+  const ackAllBtn = $("#btn-ack-all"); if (ackAllBtn) ackAllBtn.addEventListener("click", () =>
+    jpost("/api/alerts/clear").then(() => { toast("All alerts cleared"); setTimeout(() => window.location.reload(), 500); }));
+  const restoreAlertsBtn = $("#btn-restore-alerts"); if (restoreAlertsBtn) restoreAlertsBtn.addEventListener("click", () =>
+    jpost("/api/response/restore").then(() => toast("Approved baseline restored")));
 
   // baseline upload (L5X / XML / JSON)
   const blBtn = $("#bl-upload-btn");
@@ -343,6 +349,64 @@
       (SEV_RANK[b.severity] - SEV_RANK[a.severity]) || (b.seq - a.seq));
   }
 
+  // ---- Alerts + Evidence tables (mockup layout) ----
+  const SITE_NAME_SHORT = { "thermal-pi": "Thermal plant", "grfics-chem": "Chemical reactor", "all": "All sites" };
+  function timeOf(e) { const d = new Date(e.timestamp); return isNaN(d) ? (e.timestamp || "").slice(11, 19) : d.toLocaleTimeString([], { hour12: false }); }
+
+  function respCell(e) {
+    const c = el("div", "resp-cell");
+    const mk = (label, cls, fn) => { const b = el("div", "resp-btn" + (cls ? " " + cls : ""), label); b.onclick = fn; c.appendChild(b); };
+    if (hasCap("ack"))
+      mk("Acknowledge", "primary", () => { acked.add(e.event_id); flagMimic(); jpost("/api/response/ack", { ref: e.event_id }).then(() => toast("Acknowledged")); render(); });
+    if (hasCap("network_response") && e.type === "physical.rogue_device")
+      mk("Quarantine", null, () => jpost("/api/response/quarantine", { mac: e.details.mac, ip: e.details.ip, ref: e.event_id }).then(() => toast("Device quarantined")));
+    if (hasCap("safe_state") && e.details && e.details.safety_critical && e.type.startsWith("cyber."))
+      mk("Safe state", null, () => jpost("/api/response/safe_state", { rung_id: e.details.rung_id, ref: e.event_id }).then(() => toast("Safe-state recommended")));
+    if (!c.children.length) c.appendChild(el("span", "cell-sub", "—"));
+    return c;
+  }
+
+  function alertsTableRow(e) {
+    const row = el("div", "dtbl-row");
+    if (acked.has(e.event_id)) row.classList.add("acked");
+    const sev = el("div"); sev.appendChild(el("span", "sev " + e.severity, e.severity)); row.appendChild(sev);
+    row.appendChild(el("div", "cell-time", timeOf(e)));
+    const sid = eventSite(e);
+    const pl = el("div");
+    pl.appendChild(el("div", "plane-type", e.type));
+    pl.appendChild(el("div", "cell-sub", SITE_NAME_SHORT[sid] || siteLabel(sid)));
+    row.appendChild(pl);
+    const det = el("div");
+    det.appendChild(el("div", "det-title", (e.details && e.details.reason) || pretty(e.type)));
+    if (e.details && e.details.command) det.appendChild(el("div", "det-detail", e.details.command));
+    const who = e.identity && e.identity.who, ch = e.identity && e.identity.channel;
+    const hasWho = who && who !== "unknown";
+    const attr = (hasWho ? "by " + who : "") + (ch ? ((hasWho ? " · " : "") + "via " + ch) : "");
+    if (attr) det.appendChild(el("div", "det-sub", attr));
+    row.appendChild(det);
+    const mt = el("div");
+    if (e.mitre && e.mitre.technique_id) {
+      mt.appendChild(el("div", "mitre-id", e.mitre.technique_id));
+      if (e.mitre.technique_name) mt.appendChild(el("div", "mitre-name", e.mitre.technique_name));
+      if (e.mitre.tactic) mt.appendChild(el("div", "mitre-tactic", e.mitre.tactic));
+    } else { mt.appendChild(el("div", "cell-sub", "N/A")); }
+    row.appendChild(mt);
+    row.appendChild(respCell(e));
+    return row;
+  }
+
+  function evidenceTableRow(e) {
+    const row = el("div", "dtbl-row");
+    row.appendChild(el("div", "ev-seq", e.seq != null ? String(e.seq) : "—"));
+    row.appendChild(el("div", "cell-time", timeOf(e)));
+    const who = (e.identity && e.identity.who && e.identity.who !== "unknown") ? e.identity.who : (e.source || "—");
+    row.appendChild(el("div", "ev-who", who));
+    row.appendChild(el("div", "ev-what", (e.details && e.details.reason) || pretty(e.type)));
+    const id = e.event_id || "";
+    row.appendChild(el("div", "ev-id", id ? (id.slice(0, 13) + "…") : "—"));
+    return row;
+  }
+
   function render() {
     const vis = events.filter(siteVisible);
     const crit = vis.filter(e => e.severity === "critical").length;
@@ -351,11 +415,18 @@
 
     if (activeTab === "alerts") {
       const box = $("#alerts-table"); box.innerHTML = "";
-      sortedEvents(vis).forEach(e => box.appendChild(alertRow(e, true)));
+      const list = sortedEvents(vis);
+      list.forEach(e => box.appendChild(alertsTableRow(e)));
+      if (!list.length) box.appendChild(el("div", "dtbl-empty", "No drift. Live program and registers match the signed baseline on both sites."));
+      const sum = $("#alerts-summary");
+      if (sum) { const open = vis.filter(e => !acked.has(e.event_id)).length;
+        sum.textContent = vis.length ? (open + " open · " + crit + " critical") : "no alerts"; }
     }
     if (activeTab === "evidence") {
       const box = $("#evidence-table"); box.innerHTML = "";
-      vis.slice().sort((a, b) => b.seq - a.seq).forEach(e => box.appendChild(alertRow(e, false)));
+      const list = vis.slice().sort((a, b) => b.seq - a.seq);
+      list.forEach(e => box.appendChild(evidenceTableRow(e)));
+      if (!list.length) box.appendChild(el("div", "dtbl-empty", "No evidence recorded yet."));
     }
     // overview recent
     const ov = $("#ov-alerts"); if (ov) {
