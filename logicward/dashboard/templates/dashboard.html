@@ -1,18 +1,18 @@
 <!doctype html>
 <!-- Modified by Komal & Antigravity (Adani Project) -->
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LogicWard — SOC Console</title>
+  <title>Vigilo — SOC Console</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body data-role="{{ role }}" data-username="{{ username }}" data-caps="{{ caps }}">
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
-      <span class="brand-mark"><span></span></span>
-      <div><div class="brand-name">LogicWard</div><div class="brand-sub">SOC Console</div></div>
+      <img class="brand-logo" src="{{ url_for('static', filename='img/vigilo-mark.svg') }}" alt="Vigilo">
+      <div><div class="brand-name">VIGILO</div><div class="brand-sub">PLC drift detection</div></div>
     </div>
     <nav class="nav">
       <a class="nav-item active" data-tab="overview">Overview</a>
@@ -48,6 +48,7 @@
         <button class="btn" data-cap="baseline" id="btn-restore">Restore baseline</button>
         <button class="btn danger" data-cap="ack_all" id="btn-clear-logs">Acknowledge All</button>
         <a class="btn primary" data-cap="evidence" id="btn-pdf" href="/api/evidence/report.pdf">Export PDF</a>
+        <button class="theme-toggle" id="theme-toggle" title="Toggle light / dark" aria-label="Toggle theme">☾</button>
       </div>
     </header>
 

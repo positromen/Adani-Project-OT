@@ -33,6 +33,23 @@
   const fmt = (n) => (typeof n === "number" ? (Number.isInteger(n) ? n : n.toFixed(1)) : n);
   const jpost = (url, body) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).then(r => r.json());
 
+  // ---- theme (Vigilo light/dark, default light, persisted) ----
+  (function initTheme() {
+    const root = document.documentElement;
+    const apply = (t) => {
+      root.setAttribute("data-theme", t);
+      try { localStorage.setItem("lw_theme", t); } catch (e) {}
+      const btn = $("#theme-toggle");
+      if (btn) btn.textContent = (t === "dark" ? "☀" : "☾");
+    };
+    let saved = "light";
+    try { if (localStorage.getItem("lw_theme") === "dark") saved = "dark"; } catch (e) {}
+    apply(saved);
+    const btn = $("#theme-toggle");
+    if (btn) btn.addEventListener("click", () =>
+      apply(root.getAttribute("data-theme") === "dark" ? "light" : "dark"));
+  })();
+
   function toast(msg) {
     const t = $("#toast"); t.textContent = msg; t.classList.remove("hidden");
     clearTimeout(t._h); t._h = setTimeout(() => t.classList.add("hidden"), 2600);
