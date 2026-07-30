@@ -40,7 +40,7 @@ class SiteB:
         self.bus = bus or EventBus(evidence_path=config.DATA_DIR / "grfics_evidence.jsonl",
                                    history_max=config.EVENT_HISTORY_MAX)
         self.ds = ChemicalDataStore().start(hz=10.0)
-        self.server = ModbusTCPServer(host="127.0.0.1",
+        self.server = ModbusTCPServer(host=config.GRFICS_MODBUS_HOST,
                                       port=modbus_port or config.GRFICS_MODBUS_PORT,
                                       datastore=self.ds)
         self.server.start(background=True)

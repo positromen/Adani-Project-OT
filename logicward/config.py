@@ -54,6 +54,10 @@ GRFICS_BUILD_DIR = Path(_env(
         / "simulation" / "web_visualization")))
 GRFICS_MODBUS_PORT = int(_env("GRFICS_MODBUS_PORT", "5021"))
 GRFICS_DASH_PORT = int(_env("GRFICS_DASH_PORT", "8095"))
+# Bind address for the chemical (Site B) Modbus server. Localhost by default;
+# set LOGICWARD_GRFICS_MODBUS_HOST=0.0.0.0 to accept attacks from a second laptop
+# (the two-laptop demo — the attacker's real IP then shows up as "by whom").
+GRFICS_MODBUS_HOST = _env("GRFICS_MODBUS_HOST", "127.0.0.1")
 
 # ── Storage ───────────────────────────────────────────────────────────────────
 DATA_DIR = Path(_env("DATA_DIR", str(Path(__file__).resolve().parent / "data")))

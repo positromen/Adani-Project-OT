@@ -8,8 +8,10 @@
 #
 # Services:
 #   modbus_server  Modbus TCP PLC (port 5020)          <- attacker + laptop read this
+#                  + write-attribution HTTP (port 5024) <- laptop reads "who wrote what"
 #   logic_store    GET/POST /program  (port 8081)      <- program-download channel
-#   agent          physical/resource/FIM sensors -> POSTs events to the laptop
+#                  + GET /program/downloader           <- "who" downloaded the program
+#   agent          physical/resource/FIM sensors -> POSTs events + telemetry to laptop
 #
 # Ctrl+C stops all three. Logs stream to ./logs/.
 # ─────────────────────────────────────────────────────────────────────────────
