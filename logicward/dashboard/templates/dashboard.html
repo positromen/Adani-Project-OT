@@ -182,20 +182,11 @@
               <div class="cg"><div class="cg-k">Reactor pressure</div><div class="cg-v" id="cg-press">—</div><div class="cg-m"><div id="cgm-press"></div></div></div>
               <div class="cg"><div class="cg-k">Liquid level</div><div class="cg-v" id="cg-level">—</div><div class="cg-m"><div id="cgm-level"></div></div></div>
               <div class="cg"><div class="cg-k">Feed-1 valve</div><div class="cg-v" id="cg-f1">—</div><div class="cg-m"><div id="cgm-f1"></div></div></div>
+              <div class="cg"><div class="cg-k">Feed-2 valve</div><div class="cg-v" id="cg-f2">—</div><div class="cg-m"><div id="cgm-f2"></div></div></div>
               <div class="cg"><div class="cg-k">Purge valve</div><div class="cg-v" id="cg-purge">—</div><div class="cg-m"><div id="cgm-purge"></div></div></div>
+              <div class="cg"><div class="cg-k">Product valve</div><div class="cg-v" id="cg-product">—</div><div class="cg-m"><div id="cgm-product"></div></div></div>
             </div>
             <div style="margin-top:10px"><span class="pill" id="cg-esd">Reactor: —</span></div>
-          </div>
-          <div class="card" data-role-min="engineer">
-            <div class="card-h">Attacks <span class="muted tiny" style="margin-left:auto">unauthenticated Modbus writes</span></div>
-            <div class="chem-atks">
-              <button class="chem-atk" data-atk="defeat-protection"><b>1 · Defeat protection</b><small>Raise pressure safety setpoint → trip disarmed</small></button>
-              <button class="chem-atk" data-atk="valve-override"><b>2 · Valve override</b><small>Feeds 100%, purge shut → pressure redlines</small></button>
-              <button class="chem-atk" data-atk="overfill"><b>Overfill tank</b><small>Product shut, feeds high → level overflows</small></button>
-              <button class="chem-atk" data-atk="estop-injection"><b>E-stop injection</b><small>Force emergency shutdown (denial)</small></button>
-              <button class="chem-atk" data-atk="pump-kill"><b>Feed pump kill</b><small>Force feed pump 1 off</small></button>
-              <button class="chem-atk ghost" id="chem-reset"><b>Restore baseline</b><small>Revert plant to approved config</small></button>
-            </div>
           </div>
         </div>
       </div>

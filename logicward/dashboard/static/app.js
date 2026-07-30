@@ -106,7 +106,9 @@
       setCG("cg-press", "cgm-press", o.pressure, "kPa", 4000, 2600, 3200);
       setCG("cg-level", "cgm-level", o.liquid_level, "%", 120, 85, 100);
       setCG("cg-f1", "cgm-f1", st.f1_valve_pos, "%", 100, 101, 101);
+      setCG("cg-f2", "cgm-f2", st.f2_valve_pos, "%", 100, 101, 101);
       setCG("cg-purge", "cgm-purge", st.purge_valve_pos, "%", 100, 101, 101);
+      setCG("cg-product", "cgm-product", st.product_valve_pos, "%", 100, 101, 101);
       const esd = $("#cg-esd");
       if (esd) {
         if (st.e_stop) { esd.className = "pill bad"; esd.textContent = "Reactor: EMERGENCY SHUTDOWN"; }
