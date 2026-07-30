@@ -298,3 +298,12 @@ b{font-weight:700}
 
 /* Roles & Access tab: functional login credential badge */
 .role-login{display:inline-block;margin-left:6px;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--accent);background:rgba(57,135,229,.10);padding:1px 7px;border-radius:6px;vertical-align:middle}
+
+/* ── Live process trend sparklines (Phase B.2) ─────────────────────────────── */
+.trend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1px;background:var(--hair)}
+.trend{background:var(--surface);padding:12px 14px}
+.trend-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.trend-label{font-size:11px;color:var(--muted);font-weight:600}
+.trend-cur{font-size:16px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.trend-unit{font-size:11px;color:var(--muted);font-weight:400}
+.spark{display:block;width:100%;height:34px;margin-top:6px}

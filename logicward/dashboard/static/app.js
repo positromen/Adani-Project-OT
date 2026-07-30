@@ -333,7 +333,64 @@
         mp.appendChild(d);
       });
     }
+    renderTrends(p);
     updateMimic(p);
+  }
+
+  // ---- live trend sparklines ----
+  const TREND_KEYS = ["Generator_MW", "Steam_Pressure", "Main_Steam_Temp", "Drum_Level",
+                      "Turbine_Speed", "Condenser_Vacuum", "Bearing_Vibration"];
+  const trendHist = {};
+  const TREND_MAX = 60;
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  function renderTrends(p) {
+    const box = $("#plant-trends"); if (!box) return;
+    const ir = p.input_registers || {};
+    TREND_KEYS.forEach(k => {
+      const v = ir[k]; if (!v) return;
+      (trendHist[k] = trendHist[k] || []).push(v.eng);
+      if (trendHist[k].length > TREND_MAX) trendHist[k].shift();
+    });
+    box.innerHTML = "";
+    TREND_KEYS.forEach(k => {
+      const v = ir[k]; if (!v) return;
+      const d = el("div", "trend");
+      const head = el("div", "trend-head");
+      head.appendChild(el("span", "trend-label", pretty(k)));
+      const cur = el("span", "trend-cur", fmt(v.eng));
+      cur.appendChild(el("span", "trend-unit", " " + v.unit));
+      head.appendChild(cur);
+      d.appendChild(head);
+      d.appendChild(sparkline(trendHist[k] || []));
+      box.appendChild(d);
+    });
+  }
+
+  function sparkline(vals) {
+    const w = 170, h = 34, pad = 3;
+    const svg = document.createElementNS(SVGNS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+    svg.setAttribute("class", "spark");
+    if (vals.length < 2) return svg;
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    if (hi - lo < 1e-6) hi = lo + 1;
+    const x = i => pad + i * (w - 2 * pad) / (vals.length - 1);
+    const y = val => h - pad - (val - lo) / (hi - lo) * (h - 2 * pad);
+    const rising = vals[vals.length - 1] >= vals[vals.length - 2];
+    const stroke = rising ? "var(--accent)" : "var(--serious)";
+    const poly = document.createElementNS(SVGNS, "polyline");
+    poly.setAttribute("points", vals.map((v, i) => x(i).toFixed(1) + "," + y(v).toFixed(1)).join(" "));
+    poly.setAttribute("fill", "none");
+    poly.setAttribute("stroke", stroke);
+    poly.setAttribute("stroke-width", "1.6");
+    poly.setAttribute("vector-effect", "non-scaling-stroke");
+    svg.appendChild(poly);
+    const dot = document.createElementNS(SVGNS, "circle");
+    dot.setAttribute("cx", x(vals.length - 1)); dot.setAttribute("cy", y(vals[vals.length - 1]));
+    dot.setAttribute("r", "2.2"); dot.setAttribute("fill", stroke);
+    svg.appendChild(dot);
+    return svg;
   }
 
   // ---- live SCADA mimic ----
